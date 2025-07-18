@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 RUN git clone https://github.com/streamlit/streamlit-example.git .
 
 # Abhängigkeiten mit uv installieren
-RUN uv pip install -r requirements.txt
+RUN uv sync
 
 EXPOSE 8501
 
