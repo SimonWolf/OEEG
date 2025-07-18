@@ -1,0 +1,47 @@
+# .github/workflows/deploy.yml
+name: Build and Push Docker Image to GHCR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Build Docker image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/oeeg_image:latest .
+
+    - name: Push Docker image to GHCR
+      run: |
+        docker push ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
+
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan -H 91.98.20.253 >> ~/.ssh/known_hosts
+
+    - name: Pull & Run image on server
+      run: |
+        ssh -i ~/.ssh/id_ed25519 root@91.98.20.253 << 'EOF'
+          echo "<GHCR_TOKEN>" | docker login ghcr.io -u <GITHUB_USERNAME> --password-stdin
+          docker stop oeeg_image || true
+          docker rm oeeg_image || true
+          docker pull ghcr.io/<GITHUB_USERNAME>/mein_image:latest
+          docker run -d --name oeeg_image -p 80:80 ghcr.io/<GITHUB_USERNAME>/oeeg_image:latest
+        EOF
