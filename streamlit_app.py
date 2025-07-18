@@ -2,7 +2,7 @@ import streamlit as st
 
 pg = st.navigation([st.Page("overview.py", title="Übersicht"),st.Page("detail.py", title="Detailansicht"),])
 
-st.set_page_config(page_title="Data manager", page_icon=":material/edit:",layout="wide")
+st.set_page_config(page_title="ÖEG Dashboard", page_icon=":material/sunny:",layout="wide")
 
 st.logo(
     "logo_lang.png",
