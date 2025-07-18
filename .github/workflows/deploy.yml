@@ -46,5 +46,5 @@ jobs:
           docker stop oeeg_container || true
           docker rm oeeg_container || true
           docker pull ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
-          docker run -d --name oeeg_container -p 8501:8501 ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
+          docker run -d --name oeeg_container -p 8501:8501 -v ~/data:/app/data ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
         "
