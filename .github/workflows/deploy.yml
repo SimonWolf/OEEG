@@ -20,14 +20,17 @@ jobs:
 
     - name: Log in to GitHub Container Registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
+    
+    - name: Set lowercase repo owner
+      run: echo "REPO_OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+  
     - name: Build Docker image
       run: |
-        docker build -t ghcr.io/${{ github.repository_owner }}/oeeg_image:latest .
-
+        docker build -t ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest .
+        
     - name: Push Docker image to GHCR
       run: |
-        docker push ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
+        docker push  ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
 
     - name: Setup SSH
       run: |
