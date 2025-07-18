@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     permissions:
@@ -38,13 +38,13 @@ jobs:
         echo "${{ secrets.OEEG_SERVER }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan -H 91.98.20.253 >> ~/.ssh/known_hosts
-
-    - name: Pull & Run image on server
+    
+    - name: Deploy on server
       run: |
-        ssh -i ~/.ssh/id_ed25519 root@91.98.20.253 << 'EOF'
-          echo "<GHCR_TOKEN>" | docker login ghcr.io -u <GITHUB_USERNAME> --password-stdin
-          docker stop oeeg_image || true
-          docker rm oeeg_image || true
-          docker pull ghcr.io/<GITHUB_USERNAME>/mein_image:latest
-          docker run -d --name oeeg_image -p 80:80 ghcr.io/<GITHUB_USERNAME>/oeeg_image:latest
-        EOF
+        ssh -i ~/.ssh/id_ed25519 root@91.98.20.253 "
+          echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          docker stop oeeg_container || true
+          docker rm oeeg_container || true
+          docker pull ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
+          docker run -d --name oeeg_container -p 8501:8501 ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
+        "
