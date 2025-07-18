@@ -4,7 +4,7 @@ import pandas as pd
 import re
 from io import StringIO
 
-def get_day_df(standort: str, date: str) -> pd.DataFrame | str:
+def get_day_df(standort: str, date: str):
     """Lädt und parst Loggerdaten für ein gegebenes Datum & Standort."""
 
     def split_wr_column(series: pd.Series, wr: str) -> pd.DataFrame:
