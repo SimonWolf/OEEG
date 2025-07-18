@@ -45,6 +45,6 @@ jobs:
           echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ github.repository_owner }} --password
           docker stop oeeg_container || true
           docker rm oeeg_container || true
-          docker pull ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
-          docker run -d --name oeeg_container -p 8501:8501 ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
+          docker pull ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
+          docker run -d --name oeeg_container -p 8501:8501 ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
         "
