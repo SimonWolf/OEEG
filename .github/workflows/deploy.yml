@@ -42,7 +42,7 @@ jobs:
     - name: Deploy on server
       run: |
         ssh -i ~/.ssh/id_ed25519 root@91.98.20.253 "
-          echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ github.repository_owner }} --password
           docker stop oeeg_container || true
           docker rm oeeg_container || true
           docker pull ghcr.io/${{ github.repository_owner }}/oeeg_image:latest
