@@ -97,7 +97,7 @@ from pathlib import Path
 import warnings
 
 class QualityIndexStore:
-    def __init__(self, standort, save_dir="data", days_back=60):
+    def __init__(self, standort, save_dir="/app/data", days_back=60):
         self.standort = standort
         self.save_dir = Path(save_dir)
         self.days_back = days_back
