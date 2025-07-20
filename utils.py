@@ -3,6 +3,8 @@ import requests
 import pandas as pd
 import re
 from io import StringIO
+ROOT_PATH = "/app/data/"
+
 
 def get_day_df(standort: str, date: str):
     """Lädt und parst Loggerdaten für ein gegebenes Datum & Standort."""
@@ -97,7 +99,7 @@ from pathlib import Path
 import warnings
 
 class QualityIndexStore:
-    def __init__(self, standort, save_dir="/app/data", days_back=60):
+    def __init__(self, standort, save_dir=ROOT_PATH, days_back=60):
         self.standort = standort
         self.save_dir = Path(save_dir)
         self.days_back = days_back
@@ -196,3 +198,146 @@ class QualityIndexStore:
         self._fetch_missing_dates(required_dates)
 
         return self.df.loc[self.df.index.isin(required_dates)].copy()
+
+
+import os
+import pickle
+import pandas as pd
+import datetime as dt
+import requests
+from utils import QualityIndexStore, get_day_df
+
+
+
+class OverviewDatenManager:
+    def __init__(self, standorte, pickle_path=f"{ROOT_PATH}overview.pkl"):
+        self.standorte = standorte
+        self.pickle_path = pickle_path
+        self.df = self._load_or_initialize_df()
+
+    def _load_or_initialize_df(self):
+        if os.path.exists(self.pickle_path):
+            with open(self.pickle_path, "rb") as f:
+                return pickle.load(f)
+        else:
+            return pd.DataFrame()
+
+    def _save_df(self):
+        with open(self.pickle_path, "wb") as f:
+            pickle.dump(self.df, f)
+
+    def _get_general_data(self, standort: str) -> pd.DataFrame:
+        url = f"https://www.oekumenische-energiegenossenschaft.de/datenlogger/{standort}/visualisierung/base_vars.js"
+        response = requests.get(url)
+        key_value_list = [
+            line[4:].split("=")
+            for line in response.text.split("\n")
+            if line.startswith("var ")
+        ]
+        df = pd.DataFrame(key_value_list, columns=["key", "value"]).set_index("key").T
+        return df
+
+    def _process_quality_data(self, standort: str) -> pd.DataFrame:
+        quality = QualityIndexStore(standort, days_back=30).get_data().mean().reset_index()
+        if quality.empty:
+            return pd.DataFrame()
+        quality_grouped = (
+            quality[0]
+            .groupby(quality["index"].str.split("_").str[0])
+            .mean()
+            .reset_index()
+            .T
+        )
+        column_names = quality_grouped.iloc[0]
+        data = quality_grouped[1:]
+        data.columns = column_names
+        return data
+
+    def _get_last_day_data(self, standort: str, date: str) -> pd.DataFrame:
+        return get_day_df(standort, date)
+
+    def _build_entries(self, standort: str, general_df: pd.DataFrame, quality_df: pd.DataFrame, last_day_df: pd.DataFrame) -> list[dict]:
+        eintraege = []
+        max_leistung_kwp = f"{int(general_df['AnlagenKWP'].iloc[0]) / 1000} kWp"
+        standort_name = general_df["HPStandort"].iloc[0].strip().strip('"')
+
+        if quality_df.empty:
+            eintraege.append({
+                "s": standort,
+                "Standort": standort_name,
+                "Max. Leistung": max_leistung_kwp,
+                "Wechselrichter": "--",
+                "letzter Tag": [],
+                "Datenqualität": 0,
+                **general_df.to_dict(orient="records")[0]
+            })
+        else:
+            for wr in quality_df.columns:
+                eintraege.append({
+                    "s": standort,
+                    "Standort": standort_name,
+                    "Max. Leistung": max_leistung_kwp,
+                    "Wechselrichter": wr,
+                    "letzter Tag": last_day_df.get(wr + "_P", pd.Series([])).values.tolist()
+                        if isinstance(last_day_df, pd.DataFrame) else [],
+                    "Datenqualität": quality_df[wr].iloc[0],
+                    **general_df.to_dict(orient="records")[0]
+                })
+        return eintraege
+
+    def _build_df_from_scratch(self):
+        """Hilfsfunktion: erstellt das gesamte DataFrame frisch"""
+        all_entries = []
+        date_str = (dt.datetime.now() - dt.timedelta(days=1)).strftime("%y%m%d")
+
+        for standort in self.standorte:
+            general_df = self._get_general_data(standort)
+            quality_df = self._process_quality_data(standort)
+            last_day_df = self._get_last_day_data(standort, date_str)
+            entries = self._build_entries(standort, general_df, quality_df, last_day_df)
+            all_entries.extend(entries)
+
+        return pd.DataFrame(all_entries).fillna(0)
+
+    def update_quality_only(self):
+        """Aktualisiert nur die Qualitätsdaten"""
+        if self.df.empty:
+            self.df = self._build_df_from_scratch()
+
+        for idx, row in self.df.iterrows():
+            standort = row["s"]
+            wr = row["Wechselrichter"]
+            if wr == "--":
+                continue
+            quality_df = self._process_quality_data(standort)
+            if wr in quality_df.columns:
+                self.df.at[idx, "Datenqualität"] = quality_df[wr].iloc[0]
+
+        self._save_df()
+
+    def update_last_day_only(self):
+        """Aktualisiert nur die Daten des letzten Tages"""
+        if self.df.empty:
+            self.df = self._build_df_from_scratch()
+
+        date_str = (dt.datetime.now() - dt.timedelta(days=1)).strftime("%y%m%d")
+        #date_str = dt.datetime.now().strftime("%y%m%d")
+        for idx, row in self.df.iterrows():
+            standort = row["s"]
+            wr = row["Wechselrichter"]
+            if wr == "--":
+                continue
+            last_day_df = self._get_last_day_data(standort, date_str)
+            if isinstance(last_day_df, pd.DataFrame) and wr + "_P" in last_day_df.columns:
+                self.df.at[idx, "letzter Tag"] = last_day_df[wr + "_P"].values.tolist()[::-1]
+
+        self._save_df()
+
+    def get_dataframe(self) -> pd.DataFrame:
+        """Lädt das DataFrame oder erzeugt es, falls es noch nicht existiert"""
+        if self.df.empty:
+            # 👉 automatisch initial aufbauen, wenn leer
+            self.df = self._build_df_from_scratch()
+            self._save_df()
+
+        return self.df.copy()
