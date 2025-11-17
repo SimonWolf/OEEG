@@ -1,15 +1,19 @@
 # app/Dockerfile
 
-FROM python:3.9-slim
+FROM python:3.12-slim-bullseye
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Systemabhängigkeiten + uv installieren
 RUN apt-get update && apt-get install -y \
     build-essential \
+    lsb-release \
+    apt-transport-https \
     curl \
-    software-properties-common \
     git \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install uv
+    && rm -rf /var/lib/apt/lists/* 
+
+RUN pip install uv
 
 # Projektdateien in Container kopieren
 COPY . .
