@@ -1,16 +1,23 @@
 import streamlit as st
-import pandas as pd
-from utils import OverviewDatenManager
+from utils import OverviewDatenManager, get_Ertrag_dieser_Monat,get_Ertrag_dieses_Jahr,get_Gesamtertrag,get_heutige_Leistung
+import polars as pl
+from datetime import date
+import numpy as np
+from ui_utils import st_Anlagenfoto
+from update_ertragsdaten import update_ertrag
+from update_leistungsdaten import update_leistung
 
 
-
-st.title("Übersicht aller Solaranlagen")
-manager = OverviewDatenManager(standorte=[
-    "badboll", "esslingen", "geislingen", "holzgerlingen", "hospitalhof",
-    "karlsruhe", "mettingen", "muensingen", "tuebingen", "waiblingen"
-])
+STANDORTE = ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]
 
 
+st.title("Unsere Solaranlagen")
+manager = OverviewDatenManager(standorte=STANDORTE)
+#← ↖ ↑ ↗ → ←↘ ↓ ↙→
+helper_map={
+            "badboll": "↓ S", "esslingen":"↙ SW", "geislingen":"↙ SW", "holzgerlingen":"↓ S", "hospitalhof":"↓ S",
+    "karlsruhe":"↓ SSW", "mettingen":"↓ S", "muensingen":"↓ S", "tuebingen":"↓ SSO", "waiblingen":"↙ SW"
+        }
 
 data = manager.get_dataframe()
 
@@ -24,59 +31,77 @@ def qualitäts_emoji(wert):
         
         
 placeholders = {}
-for s in data["s"].unique():
+for s in STANDORTE:
     temp = data.loc[data.s==s]
     
-    st.header(temp.Standort.iloc[0])
+    #st.header(temp.Standort.iloc[0])
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns([1,1,1])
     with col1:
-        st.image(f"https://www.oekumenische-energiegenossenschaft.de/datenlogger/{s}/visualisierung/solaranlage.jpg",width=300)
-
-    with col2:
-        temp = data.loc[data.s==s]
-        temp = temp[["HPTitel","HPBetreiber","Max. Leistung","HPModul","HPWR","HPInbetrieb","HPAusricht"]]
-        temp.columns = ["Titel","Betreiber","Max. Leistung","Module","Wechselrichter","Inbetrieb seit","Ausricht"]
-        temp = temp.iloc[0]
-        temp = temp.str.strip().str.strip("\"")
-        def try_fix_encoding(text):
-            try:
-                return text.encode("latin1").decode("utf-8")
-            except (UnicodeEncodeError, UnicodeDecodeError):
-                return text  # Rückgabe des Originals, wenn's nicht geht
-
-        # Anwendung auf Series:
-        temp = temp.apply(try_fix_encoding)
+            st_Anlagenfoto(s,temp.Standort.iloc[0])
         
-        st.dataframe(temp)
+    with col2:        
+        a, b = st.columns(2)
+        c, d = st.columns(2)
+        a.metric("Peak Leistung", f"{round(int(temp["AnlagenKWP"].iloc[0])/1_000)} kWp", border=False)
+        
+        jahr= temp["HPInbetrieb"].iloc[0].strip().strip("\"")[-4:]
+        if s == "muensingen":
+            b.metric("in Betrieb seit", "2017", border=False)
+        else:
+            b.metric("in Betrieb seit", temp["HPInbetrieb"].iloc[0].strip().strip("\"")[-4:], border=False)        
+        
+        c.metric("Ausrichtung", helper_map[s], border=False) # ← ↖ ↑ ↗ → 
+        gesamt_ertrag = get_Gesamtertrag(s)
+        gesamt_ertrag_str = f"{gesamt_ertrag:,}".replace(",", ".")
+        
+        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} kWh", "+3 kWh", border=False)
+      
+
     with col3:
-        st.caption("Status Wechselrichter:")
-        placeholders[s] = st.empty()
-        
+        from numpy.random import default_rng as rng
+        import ast 
+        changes = list(rng(4).standard_normal(20))
+        data_col3 = [sum(changes[:i]) for i in range(20)]
+        delta = round(data_col3[-1], 2)
         temp = data.loc[data.s==s]
-        temp = temp[["letzter Tag", "Datenqualität"]].reset_index()
-        temp.columns=["Wechselrichter","letzter Tag", "Datenqualität"]
-        temp["Datenqualität"] = temp["Datenqualität"].apply(qualitäts_emoji)
-        placeholders[s].dataframe(
-            temp,
-            column_config={
-                "letzter Tag": st.column_config.AreaChartColumn(
-                    "letzter Tag",
-                    width="medium",
-                    help="The kwH consumption in the last 24 hours",
-                    y_min=0,
-                    y_max=10_000,
-                ),
-            
-            },
-            hide_index=True,
-            height=35 * len(temp) + 37,
-            row_height=35,
-            # selection_mode="single-row",
-            # on_select="rerun"
-            
-        )
+        temp = get_heutige_Leistung(s)
+        if len(temp)>0:
+            heute = date.today()
+            heutiger_ertrag = get_Ertrag_dieser_Monat(s)[ heute.day-1]
+            print("*"*100)
+            print(heute.day,get_Ertrag_dieser_Monat(s))
+            heutiger_ertrag_str = f"{heutiger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            delta=temp[-1]
+            delta = delta * (5 / 60) / 1000
+            delta_str = f"{delta:,.3f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            st.metric("heute Sa. 15. November 2025 ", f"{heutiger_ertrag_str} kWh", f"{delta_str} kWh", chart_data=np.round(temp/1000,1), chart_type="area", border=True    )
+        else:
+            st.error("🚨 Von heute sind leider keine Daten verfügbar!")
+        a, b = st.columns(2)
+        ertrag = get_Ertrag_dieser_Monat(s)
+        ertrag_monat_sum = np.round(ertrag.sum(), 1)
+        ertrag_monat_str = f"{ertrag_monat_sum:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if ertrag_monat_sum !=0:
+            a.metric(
+                    "Ertrag dieser Monat:", f"{ertrag_monat_str} kWh", chart_data=ertrag, chart_type="bar", border=True,
+                )
+        else:
+            a.error("🚨 Diesen Monat sind leider keine Daten verfügbar!")
+        ertrag = get_Ertrag_dieses_Jahr(s)
+        ertrag_jahr_sum = np.round(ertrag.sum())
+        ertrag_jahr_str = f"{ertrag_jahr_sum:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if ertrag_jahr_sum !=0:
+            b.metric(
+                "Ertrag dieses Jahr:", f"{ertrag_jahr_str} kWh", chart_data=ertrag, chart_type="bar", border=True,
+            )
+        else:
+            b.error("🚨 Dieses Jahr sind leider keine Daten verfügbar!")
+      
+    
+    st.space()
     st.divider()
+    st.space()
 
 manager.update_quality_only()
 manager.update_last_day_only()
@@ -88,24 +113,8 @@ for s in data["s"].unique():
     temp = temp[["letzter Tag", "Datenqualität"]].reset_index()
     temp.columns=["Wechselrichter","letzter Tag", "Datenqualität"]
     temp["Datenqualität"] = temp["Datenqualität"].apply(qualitäts_emoji)
-    
-
-    placeholders[s].dataframe(
-        temp,
-        column_config={
-            "letzter Tag": st.column_config.AreaChartColumn(
-                "letzter Tag",
-                width="medium",
-                help="The kwH consumption in the last 24 hours",
-                y_min=0,
-                y_max=10_000,
-            ),
-        
-        },
-        hide_index=True,
-        height=35 * len(temp) + 37,
-        row_height=35,
-        # selection_mode="single-row",
-        # on_select="rerun"
-        
-    )
+  
+from update_ertragsdaten import update_ertrag
+from update_leistungsdaten import update_leistung  
+update_ertrag()
+update_leistung()
