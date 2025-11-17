@@ -4,7 +4,7 @@ import pandas as pd
 import re
 from io import StringIO
 ROOT_PATH = "/app/data/"
-
+ROOT_PATH = "/Users/simon/Desktop/OEEG Dashboard/app/data"
 
 def get_day_df(standort: str, date: str):
     """Lädt und parst Loggerdaten für ein gegebenes Datum & Standort."""
@@ -341,3 +341,122 @@ class OverviewDatenManager:
             self._save_df()
 
         return self.df.copy()
+    
+    
+######################################################################################################################################################
+import pandas as pd
+import polars as pl
+from datetime import date
+import calendar
+import numpy as np
+
+def get_Ertrag_dieser_Monat(standort):
+    data_polars = pl.scan_parquet("app/data/ertrag.parquet")
+
+    heute = date.today()
+    akt_jahr = heute.year
+    akt_monat = heute.month
+    # Anzahl Tage im aktuellen Monat
+    days_in_month = calendar.monthrange(akt_jahr, akt_monat)[1]
+    
+    df_monat = (
+        data_polars
+        .filter(
+            (pl.col("standort").str.to_lowercase() == standort) &
+            (pl.col("date").dt.year() == akt_jahr) &
+            (pl.col("date").dt.month() == akt_monat)
+        )
+        .group_by(["standort", "date"])
+        .agg(
+            pl.col("value").sum().alias("value_sum")/1000
+        )
+        .sort("date")   # optional: nach Datum sortieren
+        .collect(engine="streaming")
+    )
+
+    numpy_array =  df_monat.to_pandas()["value_sum"].values
+     # Array auffüllen bis zur Länge des Monats
+    if len(numpy_array) < days_in_month:
+        fill_length = days_in_month - len(numpy_array)
+        numpy_array = np.pad(numpy_array, (0, fill_length), 'constant', constant_values=0)
+
+    # Als Liste zurückgeben
+    return np.round(numpy_array,1)
+
+def get_Ertrag_dieses_Jahr(standort):
+    data_polars = pl.scan_parquet("app/data/ertrag.parquet")
+
+    heute = date.today()
+    akt_jahr = heute.year
+    
+    # Daten für das aktuelle Jahr filtern
+    df_jahr = (
+        data_polars
+        .filter(
+            (pl.col("standort").str.to_lowercase() == standort.lower()) &
+            (pl.col("date").dt.year() == akt_jahr)
+        )
+        .with_columns([
+            pl.col("date").dt.month().alias("month")  # Monat extrahieren
+        ])
+        .group_by("month")
+        .agg(
+            (pl.col("value").sum()/1000).alias("value_sum")  # kWh
+        )
+        .sort("month")
+        .collect(engine="streaming")
+    )
+
+    # In ein dict für schnelles Auffüllen
+    month_dict = {m: v for m, v in zip(df_jahr["month"], df_jahr["value_sum"])}
+    
+    # Array für 12 Monate erstellen
+    ertrag_liste = [month_dict.get(i, 0) for i in range(1, 13)]
+    
+    # Runde auf 1 Nachkommastelle und als numpy Array zurückgeben
+    return np.round(ertrag_liste, 1)
+
+def get_Gesamtertrag(standort):
+    data_polars = pl.scan_parquet("app/data/ertrag.parquet")
+
+    # Filter nur nach Standort
+    df = (
+        data_polars
+        .filter(pl.col("standort").str.to_lowercase() == standort.lower())
+        .select(
+            (pl.col("value").sum() / 1000).alias("total_sum")  # Summe in kWh
+        )
+        .collect(engine="streaming")
+    )
+
+    total = df["total_sum"][0] if len(df) > 0 else 0
+    return int(round(total, 0))  # gerundet als Integer
+
+def get_heutige_Leistung(standort: str, file_path="app/data/leistung.parquet") -> np.ndarray:
+    """
+    Liest die Parquet-Datei im Long-Format und gibt die P-Werte des heutigen Tages
+    für einen Standort als NumPy-Array zurück.
+    """
+    heute = date.today()
+
+    # Datei laden als LazyFrame
+    df_polars = pl.scan_parquet(file_path)
+
+    df_filtered = (
+            df_polars
+            .filter(
+                (pl.col("standort").str.to_lowercase() == standort.lower()) &
+                (pl.col("Datetime").dt.date() == heute) &
+                (pl.col("string") == -1) &
+                (pl.col("sensor") == "P")
+            )
+            .group_by("Datetime")
+            .agg(pl.col("value").sum().alias("P_gesamt"))
+            .sort("Datetime")
+            .collect(engine="streaming")
+        )
+
+    df_filtered = df_filtered.to_pandas()
+
+    # NumPy-Array zurückgeben
+    return np.trim_zeros(df_filtered["P_gesamt"].to_numpy(), 'fb')
