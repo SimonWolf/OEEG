@@ -7,6 +7,11 @@ from ui_utils import st_Anlagenfoto
 from update_ertragsdaten import update_ertrag
 from update_leistungsdaten import update_leistung
 
+import os
+if not os.path.exists("app/data/ertrag.parquet"):
+    update_ertrag()
+if not os.path.exists("app/data/leistung.parquet"):
+    update_leistung()
 
 STANDORTE = ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]
 
