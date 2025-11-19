@@ -61,7 +61,21 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
             delta=temp[-1]
             delta = delta * (5 / 60) / 1000
             delta_str = f"{delta:,.3f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            st.metric("heute Sa. 15. November 2025 ", f"{heutiger_ertrag_str} kWh", f"{delta_str} kWh", chart_data=np.round(temp/1000,1), chart_type="area", border=True    )
+            from datetime import datetime
+
+            wochentag = {
+                0: "Mo.",
+                1: "Di.",
+                2: "Mi.",
+                3: "Do.",
+                4: "Fr.",
+                5: "Sa.",
+                6: "So."
+            }
+
+            heute = datetime.now()
+            datum = f"heute {wochentag[heute.weekday()]} {heute.day:02d}. {heute.strftime('%B')} {heute.year}"
+            st.metric(datum, f"{heutiger_ertrag_str} kWh", f"{delta_str} kWh", chart_data=np.round(temp/1000,1), chart_type="area", border=True    )
         else:
             st.error("🚨 Von heute sind leider keine Daten verfügbar!")
         a, b = st.columns(2)
