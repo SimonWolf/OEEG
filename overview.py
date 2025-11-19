@@ -37,8 +37,11 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
         
         
         gesamt_ertrag = get_Gesamtertrag(s)
-        gesamt_ertrag_str = f"{gesamt_ertrag:,}".replace(",", ".")        
-        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} kWh", "+3 kWh", border=False,height=103)
+        gesamt_ertrag_str = f"{gesamt_ertrag:,}".replace(",", ".")      
+        gestriger_ertrag = get_Ertrag_dieser_Monat(s)[ date.today().day-2]  
+        gestriger_ertrag = f"{gestriger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} kWh", f"+{gestriger_ertrag} kWh", border=False,height=103)
         
         panel_col, transformer_col = st.columns([1,1])
         
@@ -54,8 +57,7 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
         delta = round(data_col3[-1], 2)
         temp = get_heutige_Leistung(s)
         if len(temp)>0:
-            heute = date.today()
-            heutiger_ertrag = get_Ertrag_dieser_Monat(s)[ heute.day-1]
+            heutiger_ertrag = get_Ertrag_dieser_Monat(s)[ date.today().day-1]
 
             heutiger_ertrag_str = f"{heutiger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
             delta=temp[-1]
