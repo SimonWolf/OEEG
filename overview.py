@@ -3,65 +3,48 @@ from utils import OverviewDatenManager, get_Ertrag_dieser_Monat,get_Ertrag_diese
 import polars as pl
 from datetime import date
 import numpy as np
-from ui_utils import st_Anlagenfoto
+from ui_utils import st_Anlagenfoto,render_device
 from update_ertragsdaten import update_ertrag
 from update_leistungsdaten import update_leistung
-
+import pandas as pd
 import os
 if not os.path.exists("app/data/ertrag.parquet"):
     update_ertrag()
 if not os.path.exists("app/data/leistung.parquet"):
     update_leistung()
 
-STANDORTE = ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]
 
+allgemein = pd.read_csv("allgemein.csv")
 
 st.title("Unsere Solaranlagen")
-manager = OverviewDatenManager(standorte=STANDORTE)
-#← ↖ ↑ ↗ → ←↘ ↓ ↙→
-helper_map={
-            "badboll": "↓ S", "esslingen":"↙ SW", "geislingen":"↙ SW", "holzgerlingen":"↓ S", "hospitalhof":"↓ S",
-    "karlsruhe":"↓ SSW", "mettingen":"↓ S", "muensingen":"↓ S", "tuebingen":"↓ SSO", "waiblingen":"↙ SW"
-        }
+ 
+for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]:
 
-data = manager.get_dataframe()
-
-def qualitäts_emoji(wert):
-        if wert >= 0.93:
-            return "✅"      # alles gut
-        elif wert >= 0.5:
-            return "⚠️"      # Warnung
-        else:
-            return "❌"      # Fehler
-        
-        
-placeholders = {}
-for s in STANDORTE:
-    temp = data.loc[data.s==s]
-    
-    #st.header(temp.Standort.iloc[0])
-    
     col1, col2, col3 = st.columns([1,1,1])
     with col1:
-            st_Anlagenfoto(s,temp.Standort.iloc[0])
+            st_Anlagenfoto(s,allgemein.loc[allgemein["id"]==s]["title"].values[0])
         
     with col2:        
-        a, b = st.columns(2)
-        c, d = st.columns(2)
-        a.metric("Peak Leistung", f"{round(int(temp["AnlagenKWP"].iloc[0])/1_000)} kWp", border=False)
+        a, b = st.columns(2,border = False)
+        c, d = st.columns(2,border = False)
+        peak = allgemein.loc[allgemein["id"]==s]["peak"].values[0]
+        a.metric("Peak Leistung", f"{round(peak/1_000)} kWp", border=False,height=95)
         
-        jahr= temp["HPInbetrieb"].iloc[0].strip().strip("\"")[-4:]
-        if s == "muensingen":
-            b.metric("in Betrieb seit", "2017", border=False)
-        else:
-            b.metric("in Betrieb seit", temp["HPInbetrieb"].iloc[0].strip().strip("\"")[-4:], border=False)        
+
+        b.metric("in Betrieb seit", allgemein.loc[allgemein["id"]==s]["year"].values[0], border=False,height=95)        
         
-        c.metric("Ausrichtung", helper_map[s], border=False) # ← ↖ ↑ ↗ → 
+        c.metric("Ausrichtung", allgemein.loc[allgemein["id"]==s]["orientation"].values[0], border=False, height="stretch") # ← ↖ ↑ ↗ → 
+        
+        
         gesamt_ertrag = get_Gesamtertrag(s)
-        gesamt_ertrag_str = f"{gesamt_ertrag:,}".replace(",", ".")
+        gesamt_ertrag_str = f"{gesamt_ertrag:,}".replace(",", ".")        
+        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} kWh", "+3 kWh", border=False,height=103)
         
-        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} kWh", "+3 kWh", border=False)
-      
+        panel_col, transformer_col = st.columns([1,1])
+        
+        panel_col.metric("Solarmodule",f"🔆 {allgemein.loc[allgemein["id"]==s]["module_count"].values[0]}",allgemein.loc[allgemein["id"]==s]["module_brand"].values[0],delta_color="off")
+        transformer_col.metric("Wechselrichter",f"⚡ {allgemein.loc[allgemein["id"]==s]["transformer_count"].values[0]}",allgemein.loc[allgemein["id"]==s]["transformer_brand"].values[0],delta_color="off")
+   
 
     with col3:
         from numpy.random import default_rng as rng
@@ -69,13 +52,11 @@ for s in STANDORTE:
         changes = list(rng(4).standard_normal(20))
         data_col3 = [sum(changes[:i]) for i in range(20)]
         delta = round(data_col3[-1], 2)
-        temp = data.loc[data.s==s]
         temp = get_heutige_Leistung(s)
         if len(temp)>0:
             heute = date.today()
             heutiger_ertrag = get_Ertrag_dieser_Monat(s)[ heute.day-1]
-            print("*"*100)
-            print(heute.day,get_Ertrag_dieser_Monat(s))
+
             heutiger_ertrag_str = f"{heutiger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
             delta=temp[-1]
             delta = delta * (5 / 60) / 1000
@@ -108,16 +89,16 @@ for s in STANDORTE:
     st.divider()
     st.space()
 
-manager.update_quality_only()
-manager.update_last_day_only()
-data = manager.get_dataframe()
+# manager.update_quality_only()
+# manager.update_last_day_only()
+# data = manager.get_dataframe()
 
-for s in data["s"].unique():
+# for s in data["s"].unique():
     
-    temp = data.loc[data.s==s]
-    temp = temp[["letzter Tag", "Datenqualität"]].reset_index()
-    temp.columns=["Wechselrichter","letzter Tag", "Datenqualität"]
-    temp["Datenqualität"] = temp["Datenqualität"].apply(qualitäts_emoji)
+#     temp = data.loc[data.s==s]
+#     temp = temp[["letzter Tag", "Datenqualität"]].reset_index()
+#     temp.columns=["Wechselrichter","letzter Tag", "Datenqualität"]
+#     temp["Datenqualität"] = temp["Datenqualität"].apply(qualitäts_emoji)
   
 from update_ertragsdaten import update_ertrag
 from update_leistungsdaten import update_leistung  
