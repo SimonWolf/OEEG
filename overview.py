@@ -1,17 +1,12 @@
 import streamlit as st
-from utils import OverviewDatenManager, get_Ertrag_dieser_Monat,get_Ertrag_dieses_Jahr,get_Gesamtertrag,get_heutige_Leistung
-import polars as pl
+from utils import  get_Ertrag_dieser_Monat,get_Ertrag_dieses_Jahr,get_Gesamtertrag
 from datetime import date
 import numpy as np
-from ui_utils import st_Anlagenfoto,render_device
-from update_ertragsdaten import update_ertrag
-from update_leistungsdaten import update_leistung
+from ui_utils import st_Anlagenfoto
 import pandas as pd
-import os
-if not os.path.exists("app/data/ertrag.parquet"):
-    update_ertrag()
-if not os.path.exists("app/data/leistung.parquet"):
-    update_leistung()
+from backend_leistung import get_heutige_Leistung
+
+
 
 
 allgemein = pd.read_csv("allgemein.csv")
@@ -37,21 +32,20 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
         
         
         gesamt_ertrag = get_Gesamtertrag(s)
-        gesamt_ertrag_str = f"{gesamt_ertrag:,}".replace(",", ".")      
+        gesamt_ertrag_str = f"{round(gesamt_ertrag/1_000):,}".replace(",", ".")      
         gestriger_ertrag = get_Ertrag_dieser_Monat(s)[ date.today().day-2]  
         gestriger_ertrag = f"{gestriger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} kWh", f"+{gestriger_ertrag} kWh", border=False,height=103)
+        d.metric("Gesamtertrag", f"{gesamt_ertrag_str} MWh", f"+{gestriger_ertrag} kWh", border=False,height=103)
         
         panel_col, transformer_col = st.columns([1,1])
         
-        panel_col.metric("Solarmodule",f"🔆 {allgemein.loc[allgemein["id"]==s]["module_count"].values[0]}",allgemein.loc[allgemein["id"]==s]["module_brand"].values[0],delta_color="off")
-        transformer_col.metric("Wechselrichter",f"⚡ {allgemein.loc[allgemein["id"]==s]["transformer_count"].values[0]}",allgemein.loc[allgemein["id"]==s]["transformer_brand"].values[0],delta_color="off")
+        panel_col.metric("Solarmodule",f"🔆 {allgemein.loc[allgemein['id']==s]['module_count'].values[0]}",allgemein.loc[allgemein["id"]==s]["module_brand"].values[0],delta_color="off")
+        transformer_col.metric("Wechselrichter",f"⚡ {allgemein.loc[allgemein['id']==s]['transformer_count'].values[0]}",allgemein.loc[allgemein["id"]==s]["transformer_brand"].values[0],delta_color="off")
    
 
     with col3:
         from numpy.random import default_rng as rng
-        import ast 
         changes = list(rng(4).standard_normal(20))
         data_col3 = [sum(changes[:i]) for i in range(20)]
         delta = round(data_col3[-1], 2)
@@ -117,6 +111,6 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
 #     temp["Datenqualität"] = temp["Datenqualität"].apply(qualitäts_emoji)
   
 from update_ertragsdaten import update_ertrag
-from update_leistungsdaten import update_leistung  
+# from update_leistungsdaten import update_leistung  
 update_ertrag()
-update_leistung()
+#update_leistung()
