@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "deltalake>=1.2.1",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.5",
     "js2py>=0.74",
@@ -13,6 +14,7 @@ dependencies = [
     "plotly>=5.24.1",
     "plotly-resampler>=0.10.0",
     "polars>=1.35.2",
+    "pvlib>=0.13.1",
     "streamlit>=1.51.0",
     "streamlit-card>=1.0.2",
     "streamlit-desktop-app>=0.3.4",

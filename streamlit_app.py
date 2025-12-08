@@ -1,6 +1,6 @@
 import streamlit as st
 
-pg = st.navigation([st.Page("overview.py", title="Übersicht"),st.Page("detail.py", title="Detailansicht"),])
+pg = st.navigation([st.Page("overview.py", title="Übersicht"),st.Page("detail.py", title="Detailansicht"),st.Page("detail_new.py", title="Neu_Detailansicht"),])
 
 st.set_page_config(page_title="ÖEG Dashboard", page_icon=":material/sunny:",layout="wide")
 

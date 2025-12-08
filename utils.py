@@ -432,31 +432,3 @@ def get_Gesamtertrag(standort):
     total = df["total_sum"][0] if len(df) > 0 else 0
     return int(round(total, 0))  # gerundet als Integer
 
-def get_heutige_Leistung(standort: str, file_path="app/data/leistung.parquet") -> np.ndarray:
-    """
-    Liest die Parquet-Datei im Long-Format und gibt die P-Werte des heutigen Tages
-    für einen Standort als NumPy-Array zurück.
-    """
-    heute = date.today()
-
-    # Datei laden als LazyFrame
-    df_polars = pl.scan_parquet(file_path)
-
-    df_filtered = (
-            df_polars
-            .filter(
-                (pl.col("standort").str.to_lowercase() == standort.lower()) &
-                (pl.col("Datetime").dt.date() == heute) &
-                (pl.col("string") == -1) &
-                (pl.col("sensor") == "P")
-            )
-            .group_by("Datetime")
-            .agg(pl.col("value").sum().alias("P_gesamt"))
-            .sort("Datetime")
-            .collect(engine="streaming")
-        )
-
-    df_filtered = df_filtered.to_pandas()
-
-    # NumPy-Array zurückgeben
-    return np.trim_zeros(df_filtered["P_gesamt"].to_numpy(), 'fb')

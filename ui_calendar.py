@@ -161,7 +161,7 @@ def plot_calendar_heatmap(
             day = cell_date.day
             month = cell_date.strftime('%B')
             year = cell_date.strftime('%y')
-            return f"<b>{weekday}, {day}. {month} {year}</b><br>⚡ {round(val/1_000)} kWh"
+            return f"<b meta='{cell_date.strftime('%Y-%m-%d')}'>{weekday}, {day}. {month} {year}</b><br>⚡ {round(val/1_000)} kWh"
         except Exception:
             return f"<b>{cell_date.strftime('%Y-%m-%d')}</b><br>⚡ {round(val/1_000)} kWh"
         finally:
@@ -202,7 +202,8 @@ def plot_calendar_heatmap(
             x=scatter_x,
             y=scatter_y,
             mode='markers',
-            marker=dict(color='black', size=max(20, int(scale * 0.15))),
+            marker=dict(color='white', size=max(20, int(scale * 0.15))),
+            meta = "METAMETAMETA",
             opacity=0,  # visible hover without visual dots
             text=scatter_ht,
             hoverinfo='text',
@@ -262,11 +263,13 @@ def plot_calendar_heatmap(
         ticktext=x_ticktext,
         range=[-0.5 - left_gap, cols - 0.5],
         tickfont=dict(size=font_size),
+        
     )
+    
 
     # 6) Layout and aesthetics
     fig.update_layout(
-        title=title,
+        #title=title,
         plot_bgcolor='white',
         hoverlabel=dict(bgcolor='rgba(255,255,255,0.2)'),
         yaxis=dict(scaleanchor='x', scaleratio=1),
@@ -277,10 +280,10 @@ def plot_calendar_heatmap(
         paper_bgcolor='white',
         dragmode=False,
     )
-
+    print(int(cols * scale),int(rows * scale))
     fig.update_layout(
-        xaxis=dict(showgrid=False, zeroline=False, showline=False),
-        yaxis=dict(showgrid=False, zeroline=False, showline=False),
+        xaxis=dict(showgrid=False, zeroline=False, showline=False,fixedrange = True),
+        yaxis=dict(showgrid=False, zeroline=False, showline=False,fixedrange = True),
     )
 
     # 7) Single-path white overlay to create rounded inner gaps
@@ -300,7 +303,7 @@ def plot_calendar_heatmap(
         type='path',
         path=combined_path,
         fillcolor='white',
-        fillrule='evenodd',
+        #fillrule='evenodd',
         line=dict(color='rgba(255,255,255,1)', width=grid_width),
         layer='above',
     )
@@ -314,7 +317,7 @@ def plot_calendar_heatmap(
                 week_index = offset_days // 7
                 weekday_index = hd.weekday()
                 # Expand the shape by grid_width/2 on all sides
-                expand =0.1
+                expand =-0.1
                 fig.add_shape(
                     type='path',
                     path=_rounded_path(
@@ -325,7 +328,7 @@ def plot_calendar_heatmap(
                         r=corner_ratio ,
                     ),
                     fillcolor='rgba(0,0,0,0)',
-                    line=dict(color='black', width=grid_width),
+                    line=dict(color='rgba(0,0,0,0.6)', width=grid_width-1),
                     layer='above',
                 )
         except Exception:
