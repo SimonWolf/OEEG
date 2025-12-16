@@ -69,30 +69,30 @@ def get_sun_times(lat: float, lon: float, tz: str, datum: pd.Timestamp):
     sun_df = location.get_sun_rise_set_transit(times_for_sun, method='spa')
     return sun_df['sunrise'].iloc[0], sun_df['sunset'].iloc[0]
 
-def compute_clearsky_pv(lat: float, lon: float, tz: str, times: pd.DatetimeIndex,
-                        tilt: float, azimuth: float, eff: float):
-    """Berechne theoretische maximale PV-Leistung (Clearsky)."""
-    location = pvlib.location.Location(lat, lon, tz=tz, altitude=ALTITUDE)
-    clearsky = location.get_clearsky(times, model='ineichen')
-    solarpos = location.get_solarposition(times)
+# def compute_clearsky_pv(lat: float, lon: float, tz: str, times: pd.DatetimeIndex,
+#                         tilt: float, azimuth: float, eff: float):
+#     """Berechne theoretische maximale PV-Leistung (Clearsky)."""
+#     location = pvlib.location.Location(lat, lon, tz=tz, altitude=ALTITUDE)
+#     clearsky = location.get_clearsky(times, model='ineichen')
+#     solarpos = location.get_solarposition(times)
     
-    dni_extra = pvlib.irradiance.get_extra_radiation(times)
-    poa = pvlib.irradiance.get_total_irradiance(
-        surface_tilt=tilt,
-        surface_azimuth=azimuth,
-        solar_zenith=solarpos['apparent_zenith'],
-        solar_azimuth=solarpos['azimuth'],
-        dni=clearsky['dni'],
-        ghi=clearsky['ghi'],
-        dhi=clearsky['dhi'],
-        dni_extra=dni_extra,
-        model='haydavies'
-    )
+#     dni_extra = pvlib.irradiance.get_extra_radiation(times)
+#     poa = pvlib.irradiance.get_total_irradiance(
+#         surface_tilt=tilt,
+#         surface_azimuth=azimuth,
+#         solar_zenith=solarpos['apparent_zenith'],
+#         solar_azimuth=solarpos['azimuth'],
+#         dni=clearsky['dni'],
+#         ghi=clearsky['ghi'],
+#         dhi=clearsky['dhi'],
+#         dni_extra=dni_extra,
+#         model='haydavies'
+#     )
     
-    p_dc_simple = poa['poa_global']  * eff
-    return p_dc_simple
+#     p_dc_simple = poa['poa_global']  * eff
+#     return p_dc_simple
 
-def create_pv_plot(leistung_gesamt, leistung_wr, p_dc_simple, sunrise, sunset):
+def create_pv_plot(leistung_gesamt, leistung_wr, sunrise, sunset):
     """Erzeuge Plotly-Figure mit Gesamt- und WR-Leistung + Clearsky."""
     x = pd.to_datetime(leistung_gesamt["Datetime"])
     y_kw = leistung_gesamt["P_gesamt"].to_numpy() / 1000.0
@@ -113,7 +113,7 @@ def create_pv_plot(leistung_gesamt, leistung_wr, p_dc_simple, sunrise, sunset):
     # Gesamtleistung
     fig.add_trace(go.Scatter(
         x=x, y=y_kw, mode="lines", line=dict(color=BASE_COLOR, width=4),
-        name="Gesamt", hovertemplate="%{x|%H:%M}: %{y:.2f} kW"
+        name="Gesamt", hovertemplate="%{y:.2f} kW"
     ))
 
     # Einzel-WR-Leistung
@@ -123,18 +123,18 @@ def create_pv_plot(leistung_gesamt, leistung_wr, p_dc_simple, sunrise, sunset):
         fig.add_trace(go.Scatter(
             x=temp_x, y=temp_y, mode="lines",
             line=dict(color="#365FB7", width=2, dash=WR_DASH[i % len(WR_DASH)]),
-            name=f"Wechselrichter {wr}",
-            hovertemplate="%{x|%H:%M}: %{y:.2f} kW"
+            name=f"WR {wr}",
+            hovertemplate="%{y:.2f} kW"
         ))
 
     #Clearsky / theoretisches Maximum
-    fig.add_trace(go.Scatter(
-        x=p_dc_simple.index,
-        y=p_dc_simple/1000,
-        mode="lines",
-        line=dict(color="orange", width=2, dash="dot"),
-        name="Clearsky Max"
-    ))
+    # fig.add_trace(go.Scatter(
+    #     x=p_dc_simple.index,
+    #     y=p_dc_simple/1000,
+    #     mode="lines",
+    #     line=dict(color="orange", width=2, dash="dot"),
+    #     name="Clearsky Max"
+    # ))
     
     # fig.add_trace(go.Scatter(
     #     x=df.index,
@@ -164,12 +164,17 @@ def create_pv_plot(leistung_gesamt, leistung_wr, p_dc_simple, sunrise, sunset):
             spikemode="across",
             tickfont=dict(size=16),
         ),
+        dragmode=False,
         font_size=15,
         yaxis=dict(title="Leistung (kW)", showgrid=True, gridcolor="#f2f2f2", zeroline=False,tickfont=dict(size=16),),
         hovermode="x unified",
-        hoverlabel=dict(bgcolor="white", bordercolor="gray", font_size=16, font_family="Arial", align="left", namelength=-1)
+        hoverlabel=dict(bgcolor="white", bordercolor="gray", font_size=16, font_family="Arial", align="left", )
     )
-    
+    fig.update_yaxes(range=[0, max(y_kw)])
+    fig.update_layout(
+        xaxis=dict(showgrid=True, zeroline=False, showline=True,fixedrange = True),
+        yaxis=dict(showgrid=True, zeroline=False, showline=True,fixedrange = True),
+    )
     return fig
 
 # ------------------------------------------

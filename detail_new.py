@@ -8,7 +8,9 @@ from backend_leistung import get_day_and_update
 
 from utils import  get_Ertrag_dieser_Monat,get_Ertrag_dieses_Jahr,get_Gesamtertrag
 
-from ui_calendar import plot_calendar_heatmap
+#from ui_calendar import plot_calendar_heatmap
+from calendar_plot import plot_calendar_heatmap
+
 import pandas as pd
 
 import datetime
@@ -16,9 +18,12 @@ standorte = ["badboll","esslingen","geislingen","holzgerlingen","hospitalhof","k
 allgemein = pd.read_csv("allgemein.csv")
 with st.sidebar:
     def format(s):
-        return allgemein.loc[allgemein["id"]==s]["title"].values[0]
+        return f":red-badge[:material/error: {allgemein.loc[allgemein['id']==s]['title'].values[0]}]"
+        return f":greenray-badge[:material/check: {allgemein.loc[allgemein['id']==s]['title'].values[0]}]"
+        return f":orange-badge[:material/warning: {allgemein.loc[allgemein['id']==s]['title'].values[0]}]"
+        return allgemein.loc[allgemein["id"]==s]["title"].values[0]#+":orange-badge[:material/warning: Auffälligkeiten!]" # :green-badge[:material/check: Alles in Ordnung!] :red-badge[:material/error: Fehlende Daten!]"
     selected_standort = st.radio(
-    "Standorte:",
+    "**Aktueller Status:**",
     standorte,
     format_func=format,
     captions=["" for s in standorte],
@@ -46,9 +51,11 @@ BASE_COLOR = "#FFCC00"
 #ALPHAS = np.linspace(0.03, 0.30, NUM_LAYERS)
 WR_DASH = ['dot', 'dash', 'dashdot', 'longdashdot', 'dot', 'dash', 'dashdot']
 
-from ui_tagesleistung import load_pv_data, get_sun_times,compute_clearsky_pv, create_pv_plot
+from ui_tagesleistung import load_pv_data, get_sun_times, create_pv_plot
 
-from ui_utils import st_Anlagenfoto
+#from ui_utils import st_Anlagenfoto
+
+st.header(allgemein.loc[allgemein["id"]==selected_standort]["title"].values[0],width="content")
 
 with st.container(horizontal=True,border=True):
     # st_Anlagenfoto(selected_standort,allgemein.loc[allgemein["id"]==selected_standort]["title"].values[0])
@@ -68,7 +75,7 @@ with st.container(horizontal=True,border=True):
     st.metric("Wechselrichter",f"⚡ {allgemein.loc[allgemein['id']==selected_standort]['transformer_count'].values[0]}",allgemein.loc[allgemein["id"]==selected_standort]["transformer_brand"].values[0],delta_color="off")
    
     
-with st.container(horizontal=True):
+with st.container(horizontal=True,horizontal_alignment="center"):
 
 
     option_map = {
@@ -84,6 +91,8 @@ with st.container(horizontal=True):
         help="Mit :blue-background[**kWp**] wird die Leistung **relativ zur Gesamtleistung** der Anlage angezeigt.",
         label_visibility="visible"
     )
+    st.space("stretch")
+    st.date_input(label="Datum:",width=100,format="MM.DD.YYYY",label_visibility="visible")
     st.space("stretch")
     option_map = {
             0: "Gesamt",
@@ -113,7 +122,7 @@ try:
     #EFFICENCY=40
     #p_dc_simple = compute_clearsky_pv(LAT, LON, TZ, times, TILT, AZIMUTH, EFFICENCY)
 
-    fig = create_pv_plot(leistung_gesamt, leistung_wr, pd.DataFrame(), sunrise, sunset)
+    fig = create_pv_plot(leistung_gesamt, leistung_wr, sunrise, sunset)
     st.plotly_chart(fig,selection_mode="points",on_select="rerun",config={
         "displayModeBar": False,
         "displaylogo": False,
@@ -174,7 +183,7 @@ with st.container(horizontal=True):
     1: ":material/error: Fehler",
   
 }
-    selection = st.segmented_control(
+    ertrag_oder_fehler = st.segmented_control(
         "Tool",
         options=option_map.keys(),
         format_func=lambda option: option_map[option],
@@ -199,9 +208,43 @@ with st.container(horizontal=True):
         label_visibility="hidden"
 )
 
-fig_heatmap = plot_calendar_heatmap(ertrag, date_col='date', value_col='value', colorscale=Yellows, title='Calendar Heatmap (Heatmap)', locale_name='de_DE', scale=30,grid_width=4,
-            highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
-
+if ertrag_oder_fehler == 0:
+    # fig_heatmap = plot_calendar_heatmap(ertrag, 
+    #                                     date_col='date', 
+    #                                     value_col='value', 
+    #                                     colorscale=Yellows, 
+    #                                     title='Calendar Heatmap (Heatmap)', 
+    #                                     locale_name='de_DE', 
+    #                                     scale=30,
+    #                                     grid_width=4,
+    #                                     highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
+    fig_heatmap = plot_calendar_heatmap(ertrag, 
+                                        date_col='date', 
+                                        value_col='value', 
+                                        formatting_colorscale=Yellows, 
+                                        formatting_locale='de_DE', 
+                                        formatting_scale=30,
+                                        grid_width=4,
+                                        formatting_value_formatter= lambda value: round(value/1_000),
+                                        highlight_date=pd.to_datetime(st.session_state.selected_date).date())
+    
+else:
+    from errors import compute_final_for_standort
+    df = compute_final_for_standort(selected_standort).to_pandas().sort_values(by="date")
+    df = df.loc[df.date.dt.date>(date.today()-pd.Timedelta(days=365))]
+    fig_heatmap = plot_calendar_heatmap(df, 
+                                        date_col='date', 
+                                        value_col='mean_correlation', 
+                                        formatting_colorscale="Reds_r", 
+                                        formatting_locale='de_DE', 
+                                        formatting_scale=30,
+                                        grid_width=4,
+                                        formatting_value_formatter= lambda value: round(float(value)*100),
+                                        formatting_zmin=0,
+                                        formatting_zmax=1,
+                                        highlight_date=pd.to_datetime(st.session_state.selected_date).date())
+    # fig_heatmap = plot_calendar_heatmap(df.to_pandas(), date_col='date', value_col='mean_correlation', colorscale="Reds", title='Calendar Heatmap (Heatmap)', locale_name='de_DE', scale=30,grid_width=4,
+    #             highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
 
 # placeholder_plot = st.empty()#container(width=1350,height=210)#1350 210
 # with placeholder_plot: 
@@ -218,6 +261,7 @@ event = st.plotly_chart(fig_heatmap,selection_mode="points",on_select="rerun",co
 })
 if event:
     try: 
+        print(event.selection.points[0]["text"])
         st.session_state.selected_date = event.selection.points[0]["text"].split("'")[1]
         st.rerun()
     except Exception:

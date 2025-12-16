@@ -77,7 +77,7 @@ def compute_final_for_standort(standort: str, deltalake_path: str = "./delta-tab
         matching = [c for c in cols if c.startswith("corr_") and re.search(rf"_{t}(_|$)", c)]
         if matching:
             new_exprs.append((t, matching))
-    # error_cols = [f"{t}_correlation" for t, _ in new_exprs]
+    error_cols = [f"{t}_correlation" for t, _ in new_exprs]
 
     # Finale Berechnungen: Fehler-Median und Mittelwert
     final = (
@@ -89,9 +89,9 @@ def compute_final_for_standort(standort: str, deltalake_path: str = "./delta-tab
                 for t, matching in new_exprs
             ]
         )
-        # .with_columns(
-        #     pl.mean_horizontal([pl.col(c) for c in error_cols]).alias("error_mean")
-        # )
+        .with_columns(
+            pl.mean_horizontal([pl.col(c) for c in error_cols]).alias("mean_correlation")
+        )
         .collect()
     )
 

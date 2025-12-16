@@ -10,6 +10,9 @@ from datetime import datetime
 from typing import List, Tuple
 import numpy as np
 
+
+
+
 deltalake_path = "./delta-table/"
 lock = threading.Lock()
 
@@ -21,8 +24,7 @@ class DownloadError(RuntimeError):
 class ParseError(RuntimeError):
     """Fehler beim Parsen der Rohdaten in ein DataFrame."""
 
-
-def get_day_df_long(standort: str, date_str: str) -> pd.DataFrame:
+def download_day_long(standort: str, date_str: str,ttl_hash=None) -> pd.DataFrame:
     """
     Lädt Loggerdaten (min<date>.js) und liefert ein "long" DataFrame mit diesen Spalten:
       - Datetime (pd.Timestamp)
@@ -31,7 +33,7 @@ def get_day_df_long(standort: str, date_str: str) -> pd.DataFrame:
       - sensor (str) ('P','sum','Udc','T',...)
       - value (float)
     """
-
+    print("Download: ",standort,date_str)
     def make_column_metadata(n_cols: int, wr_label: str) -> List[Tuple[str, int]]:
         """
         Baut eine Liste (sensor, string) für jede Spalte nach der Logik:
@@ -185,43 +187,49 @@ def optimize():
         print(f"[optimize]: Files before: {before}, after: {after}")
 
 
-def get_day_and_update(standort, date) -> str:
-    # check if date is today:
+def get_day_and_update(standort, date) -> pl.LazyFrame:
+    
+    ######################################################################################################
+    # Datum ist heute! --> immer direkt vom Server herunterladen, NICHT speichern.
     if date == dt.datetime.now().date():
+        
         # print("[getDay] Heute: get data and return. Kein speichern!")
         try:
-            df = get_day_df_long(standort, date.strftime("%y%m%d"))
+            df = download_day_long(standort, date.strftime("%y%m%d"))
+            return pl.LazyFrame(df)
         except Exception as e:
             print("heute:", e)
-            df = pd.DataFrame()
-        print(f"[getDay]: {standort} - {date} - heute... Downloaded shape: {df.shape}")
-        return df
+            return None
+        #print(f"[getDay]: {standort} - {date} - heute... Downloaded shape: {df.shape}")
     else:
-        # print("[getDay]: nicht Heute: Versuche Daten aus Deltalake zu laden!")
-        try:
-            # with lock:
-            dl = pl.scan_delta(deltalake_path)
-            df = (
-                dl.filter(
+        
+        ######################################################################################################
+        # Datum nicht heute! --> versuche aus Daten aus Datei zu laden
+    
+        with lock:
+            lf = pl.scan_delta(deltalake_path)
+            lf = (
+                lf.filter(
                     (pl.col("Datetime").dt.date() == date)
                     & (pl.col("standort") == standort)
                 )
-                .collect()
-                .to_pandas()
             )
-        except Exception as e:
-            print(e)
-            df = pd.DataFrame()
-
-        if df.shape[0] == 1:
-            # print(f"[getDay]: {standort} - {date} - SKIP: No data avalaible!")
-            return pd.DataFrame()
-        if df.shape[0] == 0:
-            # print("[getDay]: Download missing data")
-
+            
+        n_rows_of_lf= lf.select(pl.len()).collect().item()
+        if n_rows_of_lf > 1:
+            # Daten sind vorhanden! -> return lf
+            return lf
+        if n_rows_of_lf == 1:
+            # Daten wurden schonmal heruntergeladen aber waren leer, kein erneuter Download! --> return None
+            return None
+        if n_rows_of_lf == 0:
+            # Daten wurden bisher noch nicht heruntergeladen --> lade herunter
             try:
-                df = get_day_df_long(standort, date.strftime("%y%m%d"))
+                df = download_day_long(standort, date.strftime("%y%m%d"))
+                threading.Thread(target=write_to_file, args=(df, standort, date), daemon=True).start()
+                return pl.LazyFrame(df)
             except Exception as e:
+                # Fehler beim download oder parsen daher  platzhalter
                 print(f"[getDay]: {standort} - {date} - {e}")
                 df_empty = pd.DataFrame(
                     [
@@ -236,16 +244,9 @@ def get_day_and_update(standort, date) -> str:
                     ]
                 )
                 df_empty["Datetime"] = pd.to_datetime(df_empty["Datetime"])
-                df = df_empty
-            threading.Thread(
-                target=write_to_file, args=(df, standort, date), daemon=True
-            ).start()
-            # print(f"[getDay]: {standort} - {date} - Downloaded shape: {df.shape}")
-            return df
-        else:
-            # print("[getDay]: Kein Download notwendig. (alle Daten verfügbar)")
-
-            return df
+                threading.Thread(target=write_to_file, args=(df_empty, standort, date), daemon=True).start()
+                return None
+       
 
 
 def get_heutige_Leistung(standort: str) -> np.ndarray:

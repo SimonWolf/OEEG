@@ -1,11 +1,11 @@
-id,title,peak,year,orientation,module_brand,module_count,transformer_brand,transformer_count
-badboll,Ev. Akademie Bad Boll,32130,2009,↓ S,210W,153,SMA SMC 10000 TL 10kW,3
-esslingen,Esslingen Waldheim,28200,2010,↙ SW,SunPower 225Wp,125,Fronius IG plus 150 / Plus 70,3
-geislingen,Ev. Pfarrhaus Geislingen,5700,2011,↙ SW,Schüco MPE 190 MS06,30,SMA SMC 5000a,1
-holzgerlingen,Johanneskirche Holzgerlingen,17640,2012,↓ S,Bosch M60-245,72,Kostal PIKO 8.3,2
-hospitalhof,Hospitalhof Stuttgart,36210,2014,↓ S,REC 255W poly,142,SMA Tripower 17000,2
-karlsruhe,Erlöserkirche Karlsruhe,62400,2012,↓ SSW,Schüco MPE 240W (poly),260,Schüco SGI 30k 33K,2
-mettingen,Esslingen-Mettingen,29835,2012,↓ S,SolarFabrik Premium 255W,117,SMA Tripower 15 KW,2
-muensingen,Samariterstift Muensingen,85000,2017,↓ S,Unbekannt,-,Kaco,6
-tuebingen,Samariterstift Tübingen,21675,2012,↓ SSO,SolarFabrik Premium L 255W,85,SMA STP 15.000 / SMA SB 5000,2
-waiblingen,Christuskirche Waiblingen,9945,2012,↙ SW,SolarFabrik ,-,Kostal Piko 10.1,1
+id,title,peak,year,orientation,module_brand,module_count,transformer_brand,transformer_count,lat,lon,alt,tz
+badboll,Ev. Akademie Bad Boll,32130,2009,↓ S,210W,153,SMA SMC 10000 TL 10kW,3,48.63776424753983, 9.6020367154057,416,Europe/Berlin
+esslingen,Esslingen Waldheim,28200,2010,↙ SW,SunPower 225Wp,125,Fronius IG plus 150 / Plus 70,3,48.749955836761565, 9.350035145868949,455,Europe/Berlin
+geislingen,Ev. Pfarrhaus Geislingen,5700,2011,↙ SW,Schüco MPE 190 MS06,30,SMA SMC 5000a,1,48.62536009651078, 9.820851789225356,412,Europe/Berlin
+holzgerlingen,Johanneskirche Holzgerlingen,17640,2012,↓ S,Bosch M60-245,72,Kostal PIKO 8.3,2,48.645369159495914, 9.02735535007046,473,Europe/Berlin
+hospitalhof,Hospitalhof Stuttgart,36210,2014,↓ S,REC 255W poly,142,SMA Tripower 17000,2,48.77757656146742, 9.172180999761053,266,Europe/Berlin
+karlsruhe,Erlöserkirche Karlsruhe,62400,2012,↓ SSW,Schüco MPE 240W (poly),260,Schüco SGI 30k 33K,2,49.00368137513947, 8.398780196439574,118,Europe/Berlin
+mettingen,Esslingen-Mettingen,29835,2012,↓ S,SolarFabrik Premium 255W,117,SMA Tripower 15 KW,2,48.74884090818057, 9.278886704276657,242,Europe/Berlin
+muensingen,Samariterstift Münsingen,85000,2017,↓ S,Unbekannt,-,Kaco,6,48.41696599006439, 9.476715355358849,702,Europe/Berlin
+tuebingen,Samariterstift Tübingen,21675,2012,↓ SSO,SolarFabrik Premium L 255W,85,SMA STP 15.000 / SMA SB 5000,2,48.50128532548015, 9.05296929919274,328,Europe/Berlin
+waiblingen,Christuskirche Waiblingen,9945,2012,↙ SW,SolarFabrik ,-,Kostal Piko 10.1,1,48.82864118359065, 9.311181207571124,249,Europe/Berlin

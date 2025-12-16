@@ -163,7 +163,8 @@ def plot_calendar_heatmap(
             year = cell_date.strftime('%y')
             return f"<b meta='{cell_date.strftime('%Y-%m-%d')}'>{weekday}, {day}. {month} {year}</b><br>⚡ {round(val/1_000)} kWh"
         except Exception:
-            return f"<b>{cell_date.strftime('%Y-%m-%d')}</b><br>⚡ {round(val/1_000)} kWh"
+            print(Exception)
+            return f"<b meta='{cell_date.strftime('%Y-%m-%d')}'>{cell_date.strftime('%Y-%m-%d')}</b><br>⚡ {round(val/1_000)} kWh"
         finally:
             if restored and current is not None:
                 try:

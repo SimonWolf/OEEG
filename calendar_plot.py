@@ -98,13 +98,15 @@ def _weekday_labels(rows: int = 7, locale_name: str | None = None, fmt: str = '%
             if s.endswith('.'):
                 s = s[:-1]
             labels.append(s)
-    except Exception:
+    except Exception as e:
+        print(e)
         labels = ['Mon ', 'Tue ', 'Wed ', 'Thu ', 'Fri ', 'Sat ', 'Sun '][:rows]
     finally:
         if restored and current is not None:
             try:
                 locale.setlocale(locale.LC_TIME, current)
-            except Exception:
+            except Exception as e:
+                print(e)
                 pass
     return labels
 
@@ -149,7 +151,8 @@ def plot_calendar_heatmap(
     def _format_value(val: float) -> str:
         try:
             return formatting_value_formatter(val) if formatting_value_formatter else f"⚡ {val} kWh"
-        except Exception:
+        except Exception as e:
+            print(e)
             return f"⚡ {val} kWh"
 
     def _cell_hover(i: int, j: int) -> str:
@@ -167,14 +170,16 @@ def plot_calendar_heatmap(
             day = cell_date.day
             month = cell_date.strftime('%B')
             year = cell_date.strftime('%y')
-            return f"<b>{weekday}, {day}. {month} {year}</b><br>{_format_value(val)}"
-        except Exception:
-            return f"<b>{cell_date.strftime('%Y-%m-%d')}</b><br>{_format_value(val)}"
+            return f"<b  meta='{cell_date.strftime('%Y-%m-%d')}'>{weekday}, {day}. {month} {year}</b><br>{_format_value(val)}"
+        except Exception as e:
+            print(e)
+            return f"<b  meta='{cell_date.strftime('%Y-%m-%d')}'>{cell_date.strftime('%Y-%m-%d')}</b><br>{_format_value(val)}"
         finally:
             if restored and current is not None:
                 try:
                     locale.setlocale(locale.LC_TIME, current)
-                except Exception:
+                except Exception as e:
+                    print(e)
                     pass
 
     hover_text = [[_cell_hover(i, j) for j in range(cols)] for i in range(rows)]
@@ -225,7 +230,6 @@ def plot_calendar_heatmap(
         range=[-0.5, rows - 0.5],
         ticklabelposition='outside',
         tickfont=dict(size=formatting_font_size),
-        #automargin=True,
         ticklabeloverflow='allow',
     )
 
@@ -255,13 +259,15 @@ def plot_calendar_heatmap(
                 if month_start.month == 12
                 else pd.Timestamp(month_start.year, month_start.month + 1, 1)
             )
-    except Exception:
+    except Exception as e:
+        print(e)
         x_ticktext = _month_ticktext(start, end_date, cols)
     finally:
         if restored and current is not None:
             try:
                 locale.setlocale(locale.LC_TIME, current)
-            except Exception:
+            except Exception as e:
+                print(e)
                 pass
 
     fig.update_xaxes(
@@ -279,14 +285,14 @@ def plot_calendar_heatmap(
         xaxis=dict(constrain='domain'),
         width=int(cols * formatting_scale),
         height=int(rows * formatting_scale),
-        margin=dict(l=0, r=0, t=14, b=0),
+        margin=dict(l=0, r=0, t=0, b=0),
         paper_bgcolor='white',
         dragmode=False,
     )
 
     fig.update_layout(
-        xaxis=dict(showgrid=False, zeroline=False, showline=False),
-        yaxis=dict(showgrid=False, zeroline=False, showline=False),
+        xaxis=dict(showgrid=False, zeroline=False, showline=False,fixedrange = True),
+        yaxis=dict(showgrid=False, zeroline=False, showline=False,fixedrange = True),
     )
 
     # 7) Single-path white overlay to create rounded inner gaps
@@ -306,7 +312,7 @@ def plot_calendar_heatmap(
         type='path',
         path=combined_path,
         fillcolor='white',
-        fillrule='evenodd',
+        #fillrule='evenodd',
         line=dict(color='rgba(255,255,255,1)', width=grid_width),
         layer='above',
     )
@@ -320,7 +326,7 @@ def plot_calendar_heatmap(
                 week_index = offset_days // 7
                 weekday_index = hd.weekday()
                 # Expand the shape by grid_width/2 on all sides
-                expand =0.1
+                expand =-0.1
                 fig.add_shape(
                     type='path',
                     path=_rounded_path(
@@ -331,12 +337,14 @@ def plot_calendar_heatmap(
                         r=grid_round ,
                     ),
                     fillcolor='rgba(0,0,0,0)',
-                    line=dict(color='black', width=grid_width),
+                    line=dict(color='rgba(0,0,0,0.6)', width=grid_width-1),
                     layer='above',
                 )
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
-        except Exception:
+        except Exception as e:
+            print(e)
             pass
 
     return fig
