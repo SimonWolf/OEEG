@@ -3,7 +3,6 @@ import streamlit as st
 from datetime import date
 import numpy as np
 from src.ui.anlagenfoto import st_Anlagenfoto
-import pandas as pd
 #from backend_leistung import get_heutige_Leistung
 from src.standort import Standort
 

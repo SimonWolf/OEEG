@@ -24,5 +24,5 @@ RUN uv sync
 EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-
+RUN uv run CRON_UPDATE.py 
 ENTRYPOINT ["uv","run","streamlit", "run", "streamlit_main.py", "--server.port=8501", "--server.address=0.0.0.0"]
