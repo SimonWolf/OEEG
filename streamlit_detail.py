@@ -1,21 +1,16 @@
 from datetime import date
 import pandas as pd
-import polars as pl
-import numpy as np
 import streamlit as st
-import plotly.graph_objects as go
-from backend_leistung import get_day_and_update
-
-from utils import  get_Ertrag_dieser_Monat,get_Ertrag_dieses_Jahr,get_Gesamtertrag
-
-#from ui_calendar import plot_calendar_heatmap
-from calendar_plot import plot_calendar_heatmap
-
-import pandas as pd
+from src.ui.year import plot_calendar_heatmap
+from src.ui.day import plot_day
+from src.standort import Standort
 
 import datetime
+
 standorte = ["badboll","esslingen","geislingen","holzgerlingen","hospitalhof","karlsruhe","mettingen","muensingen","tuebingen","waiblingen"]
-allgemein = pd.read_csv("allgemein.csv")
+
+allgemein = pd.read_csv("data/allgemein.csv")
+
 with st.sidebar:
     def format(s):
         return f":red-badge[:material/error: {allgemein.loc[allgemein['id']==s]['title'].values[0]}]"
@@ -36,6 +31,7 @@ with st.sidebar:
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = datetime.date.today().isoformat()
 
+Standort = Standort(selected_standort)
 
 LAT, LON, TZ = 48.39, 9.36, "Europe/Berlin"
 #ALTITUDE = 411
@@ -51,7 +47,6 @@ BASE_COLOR = "#FFCC00"
 #ALPHAS = np.linspace(0.03, 0.30, NUM_LAYERS)
 WR_DASH = ['dot', 'dash', 'dashdot', 'longdashdot', 'dot', 'dash', 'dashdot']
 
-from ui_tagesleistung import load_pv_data, get_sun_times, create_pv_plot
 
 #from ui_utils import st_Anlagenfoto
 
@@ -64,9 +59,9 @@ with st.container(horizontal=True,border=True):
     st.metric("in Betrieb seit", allgemein.loc[allgemein["id"]==selected_standort]["year"].values[0], border=False,height="stretch")        
     st.metric("Ausrichtung", allgemein.loc[allgemein["id"]==selected_standort]["orientation"].values[0], border=False, height="stretch") # ← ↖ ↑ ↗ → 
     
-    gesamt_ertrag = get_Gesamtertrag(selected_standort)
+    gesamt_ertrag = Standort.load_total_yield()
     gesamt_ertrag_str = f"{round(gesamt_ertrag/1_000):,}".replace(",", ".")      
-    gestriger_ertrag = get_Ertrag_dieser_Monat(selected_standort)[ date.today().day-2]  
+    gestriger_ertrag = Standort.load_daily_yield_this_month()[ date.today().day-2]  
     gestriger_ertrag = f"{gestriger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
     st.metric("Gesamtertrag", f"{gesamt_ertrag_str} MWh", f"+{gestriger_ertrag} kWh", border=False,height="stretch")
@@ -115,14 +110,8 @@ Hello :gray[pretty] :rainbow[colors] and :blue-background[highlight] text.
     
     
 try:
-    leistung_gesamt, leistung_wr = load_pv_data(FILE_PATH, selected_standort, pd.to_datetime(st.session_state.selected_date ).date())
-    sunrise, sunset = get_sun_times(LAT, LON, TZ, pd.Timestamp(pd.to_datetime(st.session_state.selected_date ).date(), tz=TZ))
-    times = pd.date_range(start=sunrise.floor('min'), end=sunset.ceil('min'), freq='1min', tz=TZ)
-
-    #EFFICENCY=40
-    #p_dc_simple = compute_clearsky_pv(LAT, LON, TZ, times, TILT, AZIMUTH, EFFICENCY)
-
-    fig = create_pv_plot(leistung_gesamt, leistung_wr, sunrise, sunset)
+    dt = pd.Timestamp(pd.to_datetime(st.session_state.selected_date ).date(), tz=TZ)
+    fig = plot_day(Standort.load_total_power_of_day(dt),Standort.load_wr_power_of_day(dt),*Standort.calculate_sunrise_times(dt))
     st.plotly_chart(fig,selection_mode="points",on_select="rerun",config={
         "displayModeBar": False,
         "displaylogo": False,
@@ -139,39 +128,43 @@ except Exception as e:
     
 ##################################################################################################
 
-ertrag = (
-    pd.read_parquet("app/data/ertrag.parquet")
-      .assign(date=lambda df: pd.to_datetime(df["date"]).dt.date)
-      .loc[lambda df: df["standort"] == selected_standort]
-)
-
-start = (pd.Timestamp.today() - pd.DateOffset(years=1)).date()
-end   = pd.Timestamp.today().date()
-
-ertrag = (
-    ertrag.loc[lambda df: df["date"] >= start]
-          .groupby("date").sum()
-          .reindex(pd.date_range(start, end, freq="D"))
-          .rename_axis("date")
-          .reset_index()
-          .assign(value=lambda df: df["value"].fillna(0))   # <-- Fill
-)
-
-#custom, colorscale with warm yellow tones
-Yellows = [[0.0, 'rgb(255, 250, 220)'],[1.0, 'rgb(255, 180, 0)']]
-
-# add a small rounded box in black to the plot
 
 
-# fig_heatmap.show(config={
-#     "displayModeBar": False,
-#     "displaylogo": False,
-#     "doubleClick": False,
-#     # "scrollZoom": False,
-#     "staticPlot": False,
-#     #"modeBarButtonsToAdd": ["select2d", "lasso2d","pan2d"],
-#     #"modeBarButtonsToRemove": ["zoom2d",  "autoScale2d", "resetScale2d"]
-# })
+
+
+# ertrag = (
+#     pd.read_parquet("app/data/ertrag.parquet")
+#       .assign(date=lambda df: pd.to_datetime(df["date"]).dt.date)
+#       .loc[lambda df: df["standort"] == selected_standort]
+# )
+
+# start = (pd.Timestamp.today() - pd.DateOffset(years=1)).date()
+# end   = pd.Timestamp.today().date()
+
+# ertrag = (
+#     ertrag.loc[lambda df: df["date"] >= start]
+#           .groupby("date").sum()
+#           .reindex(pd.date_range(start, end, freq="D"))
+#           .rename_axis("date")
+#           .reset_index()
+#           .assign(value=lambda df: df["value"].fillna(0))   # <-- Fill
+# )
+
+# #custom, colorscale with warm yellow tones
+# Yellows = [[0.0, 'rgb(255, 250, 220)'],[1.0, 'rgb(255, 180, 0)']]
+
+# # add a small rounded box in black to the plot
+
+
+# # fig_heatmap.show(config={
+# #     "displayModeBar": False,
+# #     "displaylogo": False,
+# #     "doubleClick": False,
+# #     # "scrollZoom": False,
+# #     "staticPlot": False,
+# #     #"modeBarButtonsToAdd": ["select2d", "lasso2d","pan2d"],
+# #     #"modeBarButtonsToRemove": ["zoom2d",  "autoScale2d", "resetScale2d"]
+# # })
 
 
 
@@ -217,32 +210,31 @@ if ertrag_oder_fehler == 0:
     #                                     locale_name='de_DE', 
     #                                     scale=30,
     #                                     grid_width=4,
-    #                                     highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
-    fig_heatmap = plot_calendar_heatmap(ertrag, 
+    #   
+    #                                   highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
+    Yellows = [[0.0, 'rgb(255, 250, 220)'],[1.0, 'rgb(255, 180, 0)']]
+
+    fig_heatmap = plot_calendar_heatmap(Standort.load_daily_yield_last_year(), 
                                         date_col='date', 
-                                        value_col='value', 
+                                        value_col='value_sum', 
                                         formatting_colorscale=Yellows, 
-                                        formatting_locale='de_DE', 
+                                        formatting_locale='de', 
                                         formatting_scale=30,
                                         grid_width=4,
-                                        formatting_value_formatter= lambda value: round(value/1_000),
-                                        highlight_date=pd.to_datetime(st.session_state.selected_date).date())
+                                        formatting_value_formatter= lambda value: f"⚡ {round(value)} kWh",
+                                        highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
     
 else:
-    from errors import compute_final_for_standort
-    df = compute_final_for_standort(selected_standort).to_pandas().sort_values(by="date")
-    df = df.loc[df.date.dt.date>(date.today()-pd.Timedelta(days=365))]
-    fig_heatmap = plot_calendar_heatmap(df, 
+    Reds = [[0.0,'rgb(226, 55, 33)' ],[0.8,'rgb(233, 116, 99)'],[1.0, 'rgb(254, 245, 244)']]
+    fig_heatmap = plot_calendar_heatmap(Standort.calculate_error_statistics(), 
                                         date_col='date', 
                                         value_col='mean_correlation', 
-                                        formatting_colorscale="Reds_r", 
-                                        formatting_locale='de_DE', 
+                                        formatting_colorscale=Reds, 
+                                        formatting_locale='de', 
                                         formatting_scale=30,
                                         grid_width=4,
-                                        formatting_value_formatter= lambda value: round(float(value)*100),
-                                        formatting_zmin=0,
-                                        formatting_zmax=1,
-                                        highlight_date=pd.to_datetime(st.session_state.selected_date).date())
+                                        formatting_value_formatter= lambda value: f"⚡ {round(value*100)} %",
+                                        highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
     # fig_heatmap = plot_calendar_heatmap(df.to_pandas(), date_col='date', value_col='mean_correlation', colorscale="Reds", title='Calendar Heatmap (Heatmap)', locale_name='de_DE', scale=30,grid_width=4,
     #             highlight_date=pd.to_datetime(st.session_state.selected_date ).date())
 
@@ -261,9 +253,9 @@ event = st.plotly_chart(fig_heatmap,selection_mode="points",on_select="rerun",co
 })
 if event:
     try: 
-        print(event.selection.points[0]["text"])
+        print(event.selection.points[0]["text"].split("'")[1])
         st.session_state.selected_date = event.selection.points[0]["text"].split("'")[1]
-        st.rerun()
+        #st.rerun()
     except Exception:
         pass
     

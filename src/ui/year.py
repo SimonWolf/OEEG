@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import locale
-import calendar
+from babel.core import Locale
+from babel.dates import format_date
 from typing import Callable
 
 def _prepare_grid(df: pd.DataFrame, date_col: str, value_col: str) -> tuple[pd.Timestamp, np.ndarray, int, int]:
@@ -79,35 +79,22 @@ def _month_ticktext(start: pd.Timestamp, end: pd.Timestamp, cols: int) -> list[s
     return ticktext
 
 def _weekday_labels(rows: int = 7, locale_name: str | None = None, fmt: str = '%a') -> list[str]:
-    """Return localized weekday labels starting Monday, length `rows`.
+    """Return localized weekday labels starting Monday, length `rows`, using Babel.
 
-    Uses Python `locale` and `datetime.strftime` with `fmt` (default `%a`).
-    Falls back to English if the locale cannot be set.
+    `locale_name` examples: 'de', 'de_DE', 'en', 'fr'. Falls back to 'en'.
     """
     from datetime import datetime, timedelta
     base_monday = datetime(2025, 1, 6)
-    current = locale.getlocale(locale.LC_TIME)
-    restored = False
     try:
-        if locale_name:
-            locale.setlocale(locale.LC_TIME, locale_name)
-            restored = True
-        labels = []
-        for i in range(rows):
-            s = (base_monday + timedelta(days=i)).strftime(fmt)
-            if s.endswith('.'):
-                s = s[:-1]
-            labels.append(s)
-    except Exception as e:
-        print(e)
-        labels = ['Mon ', 'Tue ', 'Wed ', 'Thu ', 'Fri ', 'Sat ', 'Sun '][:rows]
-    finally:
-        if restored and current is not None:
-            try:
-                locale.setlocale(locale.LC_TIME, current)
-            except Exception as e:
-                print(e)
-                pass
+        loc = Locale.parse(locale_name or 'en')
+    except Exception:
+        loc = Locale.parse('en')
+    labels = []
+    for i in range(rows):
+        s = format_date(base_monday + timedelta(days=i), format='EEE', locale=loc)
+        if s.endswith('.'):
+            s = s[:-1]
+        labels.append(s)
     return labels
 
 
@@ -152,7 +139,7 @@ def plot_calendar_heatmap(
         try:
             return formatting_value_formatter(val) if formatting_value_formatter else f"⚡ {val} kWh"
         except Exception as e:
-            print(e)
+            print("_format_value:",e)
             return f"⚡ {val} kWh"
 
     def _cell_hover(i: int, j: int) -> str:
@@ -160,27 +147,16 @@ def plot_calendar_heatmap(
         if not np.isfinite(val):
             return ''
         cell_date = (start + pd.Timedelta(days=int(j * 7 + i))).date()
-        current = locale.getlocale(locale.LC_TIME)
-        restored = False
         try:
-            if formatting_locale:
-                locale.setlocale(locale.LC_TIME, formatting_locale)
-                restored = True
-            weekday = cell_date.strftime('%a')
-            day = cell_date.day
-            month = cell_date.strftime('%B')
-            year = cell_date.strftime('%y')
-            return f"<b  meta='{cell_date.strftime('%Y-%m-%d')}'>{weekday}, {day}. {month} {year}</b><br>{_format_value(val)}"
+            try:
+                loc = Locale.parse(formatting_locale or 'en')
+            except Exception:
+                loc = Locale.parse('en')
+            formatted = format_date(cell_date, format='EEE, d. LLLL yy', locale=loc)
+            return f"<b  meta='{cell_date.strftime('%Y-%m-%d')}'>{formatted}</b><br>{_format_value(val)}"
         except Exception as e:
-            print(e)
+            print("_cell_hover:", e)
             return f"<b  meta='{cell_date.strftime('%Y-%m-%d')}'>{cell_date.strftime('%Y-%m-%d')}</b><br>{_format_value(val)}"
-        finally:
-            if restored and current is not None:
-                try:
-                    locale.setlocale(locale.LC_TIME, current)
-                except Exception as e:
-                    print(e)
-                    pass
 
     hover_text = [[_cell_hover(i, j) for j in range(cols)] for i in range(rows)]
 
@@ -234,12 +210,11 @@ def plot_calendar_heatmap(
     )
 
     end_date = pd.to_datetime(df[date_col]).max().normalize()
-    current = locale.getlocale(locale.LC_TIME)
-    restored = False
     try:
-        if formatting_locale:
-            locale.setlocale(locale.LC_TIME, formatting_locale)
-            restored = True
+        try:
+            loc = Locale.parse(formatting_locale or 'en')
+        except Exception:
+            loc = Locale.parse('en')
         x_ticktext = [''] * cols
         month_start = pd.Timestamp(start.year, start.month, 1)
         if start.day != 1:
@@ -251,24 +226,15 @@ def plot_calendar_heatmap(
         while month_start <= end_date:
             wi = ((month_start - start).days // 7)
             if 0 <= wi < cols:
-                x_ticktext[wi] = (
-                    calendar.month_abbr[month_start.month]
-                )
+                x_ticktext[wi] = format_date(month_start, format='LLL', locale=loc)
             month_start = (
                 pd.Timestamp(month_start.year + 1, 1, 1)
                 if month_start.month == 12
                 else pd.Timestamp(month_start.year, month_start.month + 1, 1)
             )
     except Exception as e:
-        print(e)
+        print("_month_ticktext:", e)
         x_ticktext = _month_ticktext(start, end_date, cols)
-    finally:
-        if restored and current is not None:
-            try:
-                locale.setlocale(locale.LC_TIME, current)
-            except Exception as e:
-                print(e)
-                pass
 
     fig.update_xaxes(
         tickvals=np.arange(cols),

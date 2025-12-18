@@ -1,17 +1,18 @@
 [project]
-name = "visualisierung"
+name = "OEEG"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "babel>=2.17.0",
     "deltalake>=1.2.1",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.5",
     "js2py>=0.74",
     "nbformat>=5.10.4",
     "pandas>=2.2.3",
-    "plotly>=5.24.1",
+    "plotly>=6.5.0",
     "plotly-resampler>=0.10.0",
     "polars>=1.36.1",
     "pvlib>=0.13.1",

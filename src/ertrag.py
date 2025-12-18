@@ -75,14 +75,14 @@ def update_ertrag():
         new_data_pull.append(parse_js_text(response.text, standort=s))
     new_data_pull = pd.concat(new_data_pull) 
 
-    if os.path.exists("app/data/ertrag.parquet"):
+    if os.path.exists("data/ertrag.parquet"):
 
-        old_data = pd.read_parquet("app/data/ertrag.parquet")
+        old_data = pd.read_parquet("data/ertrag.parquet")
   
         final = pd.concat([new_data_pull,old_data]).drop_duplicates(subset=["date","standort","wr"],keep="first").sort_values(by="date")
         
-        final.to_parquet("app/data/ertrag.parquet",index=False)
+        final.to_parquet("data/ertrag.parquet",index=False)
     else:
-        new_data_pull.drop_duplicates(subset=["date","standort","wr"]).sort_values(by="date").to_parquet("app/data/ertrag.parquet",index=False)
+        new_data_pull.drop_duplicates(subset=["date","standort","wr"]).sort_values(by="date").to_parquet("data/ertrag.parquet",index=False)
 
     print("Ertragsdaten aktualisiert!")
