@@ -1,4 +1,6 @@
 import streamlit as st
+from src.standort import Standort
+
 
 pg = st.navigation([st.Page("streamlit_overview.py", title="Übersicht"),st.Page("streamlit_detail.py", title="Detailansicht")])
 
@@ -10,7 +12,9 @@ st.logo(
    # size="large",
 )
 
-
+for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]:
+    if s not in st.session_state:
+        st.session_state[s] = Standort(s)
 
 
 pg.run()

@@ -14,6 +14,7 @@ PATH_ERTRAG = "data/ertrag.parquet"
 PATH_DELTA = "data/delta-table/"
 CACHE_SIZE = 32
 
+META = pd.read_csv(PATH_META)
 
 class Standort:
     def __init__(
@@ -25,9 +26,9 @@ class Standort:
         self.leistung = Leistung()
         return None
 
+    
     def __get_meta_data(self):
-        allgemein = pd.read_csv(PATH_META)
-        meta = allgemein.loc[allgemein.id == self.standort].iloc[0].to_dict()
+        meta = META.loc[META.id == self.standort].iloc[0].to_dict()
         return meta
 
     @lru_cache(maxsize=CACHE_SIZE)
