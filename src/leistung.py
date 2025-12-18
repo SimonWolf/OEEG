@@ -12,7 +12,7 @@ from functools import lru_cache
 from tqdm import tqdm
 
 # Meta/paths kept outside the class, as requested
-PATH_DELTA = "app/delta-table/"
+PATH_DELTA = "data/delta-table/"
 lock = threading.Lock()
 
 

@@ -45,8 +45,7 @@ jobs:
           echo '${{ secrets.GHCR_TOKEN }}' | docker login ghcr.io -u ${{ github.repository_owner }} --password
           docker stop oeeg_container || true
           docker rm oeeg_container || true
-          rm -f ~/data/ertrag.parquet
-          rm -f ~/data/leistung.parquet
+          mkdir -p ~/delta-table
           docker pull ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
-          docker run -d --name oeeg_container -p 80:8501 -v ~/data:/app/data ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
+          docker run -d --name oeeg_container -p 80:8501 -v ~/delta-table:/data/delta-table ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
         "

@@ -24,5 +24,9 @@ RUN uv sync
 EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
-RUN uv run CRON_UPDATE.py 
-ENTRYPOINT ["uv","run","streamlit", "run", "streamlit_main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Document persistent data path (mounted in deploy workflow)
+VOLUME ["/data/delta-table"]
+
+# Run data update at container start so writes go to the mounted volume,
+# then launch the Streamlit app. Continue even if update fails.
+ENTRYPOINT ["sh","-c","uv run CRON_UPDATE.py || true; exec uv run streamlit run streamlit_main.py --server.port=8501 --server.address=0.0.0.0"]
