@@ -48,4 +48,7 @@ jobs:
           mkdir -p ~/delta-table
           docker pull ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
           docker run -d --name oeeg_container -p 80:8501 -v ~/delta-table:/data/delta-table ghcr.io/${{ env.REPO_OWNER_LC }}/oeeg_image:latest
+          docker image prune -a --force
+          docker container prune --force
+          
         "
