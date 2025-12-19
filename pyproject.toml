@@ -19,5 +19,6 @@ dependencies = [
     "streamlit>=1.51.0",
     "streamlit-card>=1.0.2",
     "streamlit-desktop-app>=0.3.4",
+    "streamlit-plotly-events>=0.0.6",
     "tqdm>=4.67.1",
 ]

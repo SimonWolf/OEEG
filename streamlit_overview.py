@@ -4,7 +4,6 @@ from datetime import date,datetime
 import numpy as np
 from src.ui.anlagenfoto import st_Anlagenfoto
 #from backend_leistung import get_heutige_Leistung
-from src.standort import Standort
 
 
 

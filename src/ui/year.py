@@ -129,6 +129,7 @@ def plot_calendar_heatmap(
     cell gets an extra black outline.
     """
 
+
     # 1) Build Monday-aligned grid and localized weekday labels
     start, z_vals, rows, cols = _prepare_grid(df.copy(), date_col, value_col)
     
@@ -190,7 +191,7 @@ def plot_calendar_heatmap(
             x=scatter_x,
             y=scatter_y,
             mode='markers',
-            marker=dict(color='black', size=max(20, int(formatting_scale * 0.15))),
+            marker=dict(color='black', size=max(25, int(formatting_scale * 0.15)),symbol="square"),
             opacity=0,  # visible hover without visual dots
             text=scatter_ht,
             hoverinfo='text',
@@ -198,6 +199,7 @@ def plot_calendar_heatmap(
             hoverlabel=dict(font=dict(size=formatting_font_size)),
             )
         )
+  #  fig.add_selection(x0=-2, y0=-2, x1=-2, y1=-2)
 
     # 5) Axes: weekday ticks (Y) and localized month labels (X)
     fig.update_yaxes(

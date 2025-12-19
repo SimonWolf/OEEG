@@ -177,7 +177,7 @@ class Standort:
 
         first_date = date.today() - pd.Timedelta(days=365)
     
-        df_monat = (
+        df_year = (
             data_polars.filter(
                 (pl.col("standort").str.to_lowercase() == self.standort)
                 & (pl.col("date") >= first_date)
@@ -186,10 +186,15 @@ class Standort:
             .agg(pl.col("value").sum().alias("value_sum") / 1000)
             .sort("date")  # optional: nach Datum sortieren
             .collect(engine="streaming")
+            .to_pandas()
         )
 
+        # resample to date from dirst_date to today and fill with 0
+        all_dates = pd.date_range(start=first_date, end=date.today(), freq='D')
+        df_year.set_index('date', inplace=True)
+        df_year = df_year.reindex(all_dates, fill_value=0).rename_axis('date').reset_index()
 
-        return df_monat.to_pandas()
+        return df_year
 
     ##############################################################################################################
     ## Fehler-analyse:
@@ -294,5 +299,11 @@ class Standort:
             )
             .collect().to_pandas()
         )
-
+        # resample by 0 and fill missing  with 0 
+        end = date.today()
+        start = end - pd.Timedelta(days=365)
+        all_dates = pd.date_range(start=start, end=end, freq='D')
+        final.set_index('date', inplace=True)
+        final = final.reindex(all_dates, fill_value=0).rename_axis('date').reset_index()
+        
         return final

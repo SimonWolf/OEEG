@@ -1141,6 +1141,7 @@ dependencies = [
     { name = "streamlit" },
     { name = "streamlit-card" },
     { name = "streamlit-desktop-app" },
+    { name = "streamlit-plotly-events" },
     { name = "tqdm" },
 ]
 
@@ -1160,6 +1161,7 @@ requires-dist = [
     { name = "streamlit", specifier = ">=1.51.0" },
     { name = "streamlit-card", specifier = ">=1.0.2" },
     { name = "streamlit-desktop-app", specifier = ">=0.3.4" },
+    { name = "streamlit-plotly-events", specifier = ">=0.0.6" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
@@ -2356,6 +2358,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c1/e8/48b8fe5407c9621a6bfe13d5c5cb657ba8559aeb576268706037d17c1cbf/streamlit_desktop_app-0.3.4.tar.gz", hash = "sha256:b8b9d62ff42fb0670bc14b161625009149b836389d60f809089fd4eb1df8799c", size = 13065, upload-time = "2024-12-14T07:54:06.012Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/35/3e/716be0a71f8f9ba72e20b32a3cf18d5b773014c919217c4f7aab7f1d6cfb/streamlit_desktop_app-0.3.4-py3-none-any.whl", hash = "sha256:5bd5d914666bda8590128095b953615c7b6a90d42d0ad42c0e797bfc8c820922", size = 13723, upload-time = "2024-12-14T07:54:03.325Z" },
+]
+
+[[package]]
+name = "streamlit-plotly-events"
+version = "0.0.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "plotly" },
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/61/8c/e51c4867cc4d819f8452811199241d0edbcec73621768270ada66153f874/streamlit-plotly-events-0.0.6.tar.gz", hash = "sha256:1fe25dbf0e5d803aeb90253be04d7b395f5bcfdf3c654f96ff3c19424e7f9582", size = 4874598, upload-time = "2021-04-26T23:36:16.973Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/08/51dd5c822e27410f6452c3cfe61f7163fdeb40f4d285f2da6c2b9f88584d/streamlit_plotly_events-0.0.6-py3-none-any.whl", hash = "sha256:e63fbe3c6a0746fdfce20060fc45ba5cd97805505c332b27372dcbd02c2ede29", size = 14802161, upload-time = "2021-04-26T23:36:09.194Z" },
 ]
 
 [[package]]
