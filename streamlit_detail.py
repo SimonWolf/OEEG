@@ -69,10 +69,10 @@ with st.container(horizontal=True,horizontal_alignment="center"):
         selection_mode="single",
         default=0,
         help="Mit :blue-background[**kWp**] wird die Leistung **relativ zur Gesamtleistung** der Anlage angezeigt.",
-        label_visibility="visible"
+        label_visibility="visible",  disabled=True
     )
     st.space("stretch")
-    st.date_input(label="Datum:",width=100,format="MM.DD.YYYY",label_visibility="visible")
+    st.date_input(label="Datum:",width=100,format="MM.DD.YYYY",label_visibility="visible",  disabled=True)
     st.space("stretch")
     option_map = {
             0: "Gesamt",
@@ -90,7 +90,7 @@ with st.container(horizontal=True,horizontal_alignment="center"):
         
 Hello :gray[pretty] :rainbow[colors] and :blue-background[highlight] text.
         ''',
-        label_visibility="visible"
+        label_visibility="visible",  disabled=True
     )
 
 day_plot_ph = st.container(height=450,border=False)
@@ -133,7 +133,8 @@ with st.container(horizontal=True):
         format_func=lambda option: option_map[option],
         selection_mode="single",
         default=0,
-        label_visibility="hidden"
+        label_visibility="hidden",
+      
     )
     st.space("stretch")
     option_map = {
@@ -149,7 +150,8 @@ with st.container(horizontal=True):
         format_func=lambda option: option_map[option],
         selection_mode="single",
         default=0,
-        label_visibility="hidden"
+        label_visibility="hidden",
+          disabled=True
 )
 
 if ertrag_oder_fehler == 0:
