@@ -64,7 +64,7 @@ def parse_js_text(text, standort='Esslingen'):
 
 
 def update_ertrag():
-    standorte = ["badboll","esslingen","geislingen","holzgerlingen","hospitalhof","karlsruhe","mettingen","muensingen","tuebingen","waiblingen"]
+    standorte =  ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof"]
     new_data_pull = []
     for s in standorte:
         url = f"https://www.oekumenische-energiegenossenschaft.de/datenlogger/{s}/visualisierung/days_hist.js"
