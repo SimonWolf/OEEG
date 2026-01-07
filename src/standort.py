@@ -53,7 +53,7 @@ class Standort:
     ## Leistungs-Daten:
     def load_total_power_of_day(self, datum: date, ttl_hash=None) -> pd.DataFrame:
         df_polars = self.leistung.get_day_and_update(self.standort, datum)
-        return (
+        df = (
             df_polars
             .filter((pl.col("string") == -1) & (pl.col("sensor") == "P"))
             .group_by("Datetime")
@@ -62,6 +62,8 @@ class Standort:
             .collect(engine="streaming")
             .to_pandas()
         )
+        sunrise, sunset = self.calculate_sunrise_times(datum)
+        return df[(df["Datetime"] >= sunrise.replace(tzinfo=None)) & (df["Datetime"] <= sunset.replace(tzinfo=None))]
 
     def load_wr_power_of_day(self, datum: date, ttl_hash=None) -> pd.DataFrame:
         df_polars = self.leistung.get_day_and_update(self.standort, datum)
