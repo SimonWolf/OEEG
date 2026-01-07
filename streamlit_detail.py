@@ -1,8 +1,6 @@
 import streamlit as st
-import time
 from datetime import date
 import pandas as pd
-import streamlit as st
 from src.ui.year import plot_calendar_heatmap
 from src.ui.day import plot_day
 from src.ui.detail.header import create_header
