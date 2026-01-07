@@ -7,7 +7,7 @@ from src.ui.detail.header import create_header
 
 print("RERUN WHOLE SCRIPT")
 
-standorte = ["badboll","esslingen","geislingen","holzgerlingen","hospitalhof","karlsruhe","mettingen","muensingen","tuebingen","waiblingen"]
+standorte = ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof"]#"waiblingen" läuft auf kaco esslingen in fronius,geislingen unklar
 Yellows = [[0.0, 'rgb(255, 250, 220)'],[1.0, 'rgb(255, 180, 0)']]
 allgemein = pd.read_csv("data/allgemein.csv")
 

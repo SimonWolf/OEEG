@@ -12,7 +12,7 @@ st.logo(
    # size="large",
 )
 
-for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]:
+for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof"]: #,"waiblingen" -> kaco ,"esslingen" -> fronius, "geislingen"->unklar,
     if s not in st.session_state:
         st.session_state[s] = Standort(s)
 

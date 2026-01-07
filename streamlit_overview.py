@@ -11,7 +11,7 @@ from src.ui.anlagenfoto import st_Anlagenfoto
 
 st.title("Unsere Solaranlagen")
  
-for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof","waiblingen","esslingen", "geislingen",]:
+for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "tuebingen", "hospitalhof"]:
 
    
 
