@@ -47,7 +47,7 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
         data_col3 = [sum(changes[:i]) for i in range(20)]
         delta = round(data_col3[-1], 2)
         try:
-            temp = st.session_state[s].load_total_power_of_day(date.today(),).P_gesamt.to_numpy() #ttl_hash= int(datetime.now().timestamp() //300)
+            temp = st.session_state[s].load_total_power_of_day(date.today(),ttl_hash= int(datetime.now().timestamp() //300)).P_gesamt.to_numpy()
         
             heutiger_ertrag = st.session_state[s].load_daily_yield_this_month()[date.today().day-1]
             heutiger_ertrag_str = f"{heutiger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -71,7 +71,7 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
 
             heute = datetime.now()
             datum = f"heute {wochentag[heute.weekday()]} {heute.day:02d}. {heute.strftime('%B')} {heute.year}"
-            st.metric(datum, f"{heutiger_ertrag_str} kWh", f"{delta_str} kWh", chart_data=np.round(temp/1000,1), chart_type="area", border=True    )
+            st.metric(datum, f"{heutiger_ertrag_str} kWh", f"{delta_str} kWh", chart_data=np.round(temp/1000,3), chart_type="area", border=True    )
         except Exception as e:
             print(e)
             st.error("🚨 Von heute sind leider keine Daten verfügbar!")
