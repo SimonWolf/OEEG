@@ -47,13 +47,16 @@ for s in ["muensingen", "karlsruhe", "badboll", "mettingen", "holzgerlingen", "t
         data_col3 = [sum(changes[:i]) for i in range(20)]
         delta = round(data_col3[-1], 2)
         try:
-            temp = st.session_state[s].load_total_power_of_day(date.today(),ttl_hash= int(datetime.now().timestamp() //300)).P_gesamt.to_numpy()
+            temp = st.session_state[s].load_total_power_of_day(date.today(),).P_gesamt.to_numpy() #ttl_hash= int(datetime.now().timestamp() //300)
         
             heutiger_ertrag = st.session_state[s].load_daily_yield_this_month()[date.today().day-1]
             heutiger_ertrag_str = f"{heutiger_ertrag:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            if temp.shape[0]<2:
+                delta = 0
+            else:
 
-            delta=temp[-1]
-            delta = delta * (5 / 60) / 1000
+                delta=temp[-1]
+                delta = delta * (5 / 60) / 1000
             delta_str = f"{delta:,.3f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
             wochentag = {
