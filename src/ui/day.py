@@ -21,10 +21,21 @@ WR_DASH = ['dot', 'dash', 'dashdot', 'longdashdot', 'dot', 'dash', 'dashdot']
 
 
 
-def plot_day(leistung_gesamt, leistung_wr, sunrise, sunset):
+def plot_day(leistung_gesamt, leistung_wr, sunrise, sunset, peak_leistung, unit):
     """Erzeuge Plotly-Figure mit Gesamt- und WR-Leistung + Clearsky."""
     x = pd.to_datetime(leistung_gesamt["Datetime"])
     y_kw = leistung_gesamt["P_gesamt"].to_numpy() / 1000.0
+    is_percent_unit = unit == 1
+
+    if is_percent_unit:
+        y_kw = y_kw / peak_leistung
+        y_axis_title = "Leistung (%)"
+        y_tickformat = ".0%"
+        hover_template = "%{y:.1%}"
+    else:
+        y_axis_title = "Leistung (kW)"
+        y_tickformat = None
+        hover_template = "%{y:.2f} kW"
 
     fig = go.Figure()
 
@@ -43,17 +54,19 @@ def plot_day(leistung_gesamt, leistung_wr, sunrise, sunset):
     for i, wr in enumerate(leistung_wr["wr"].unique()[::-1]):
         temp_x = pd.to_datetime(leistung_wr.loc[leistung_wr["wr"]==wr]["Datetime"])
         temp_y = leistung_wr.loc[leistung_wr["wr"]==wr]["value"] / 1_000
+        if is_percent_unit:
+            temp_y = temp_y / peak_leistung
         fig.add_trace(go.Scatter(
             x=temp_x, y=temp_y, mode="lines",
             line=dict(color="#365FB7", width=2, dash=WR_DASH[i % len(WR_DASH)]),
             name=f"WR {wr}",
-            hovertemplate="%{y:.2f} kW"
+            hovertemplate=hover_template
         ))
 
     # Gesamtleistung (nach den WR-Traces hinzufügen, damit sie in der Legende zuletzt erscheint)
     fig.add_trace(go.Scatter(
         x=x, y=y_kw, mode="lines", line=dict(color=BASE_COLOR, width=4),
-        name="Gesamt", hovertemplate="%{y:.2f} kW"
+        name="Gesamt", hovertemplate=hover_template
     ))
     # Layout
     fig.update_layout(
@@ -76,7 +89,7 @@ def plot_day(leistung_gesamt, leistung_wr, sunrise, sunset):
         ),
         dragmode=False,
         font=dict(family="sans-serif", size=15),
-        yaxis=dict(title="Leistung (kW)", showgrid=True, gridcolor="#f2f2f2", zeroline=False, tickfont=dict(size=16, family="sans-serif")),
+        yaxis=dict(title=y_axis_title, showgrid=True, gridcolor="#f2f2f2", zeroline=False, tickfont=dict(size=16, family="sans-serif"), tickformat=y_tickformat),
         hovermode="x unified",
         hoverlabel=dict(bgcolor="white", bordercolor="gray", font_size=16, font_family="sans-serif", align="left"),
         legend=dict(font=dict(family="sans-serif", size=14))

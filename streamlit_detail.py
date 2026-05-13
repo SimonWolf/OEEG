@@ -60,17 +60,18 @@ with st.container(horizontal=True,horizontal_alignment="center"):
             0: "kW",
             1: "kWp",    
         }
-    selection = st.segmented_control(
+    st.session_state.selected_unit = st.segmented_control(
         "Einheit:",
         options=option_map.keys(),
         format_func=lambda option: option_map[option],
         selection_mode="single",
         default=0,
         help="Mit :blue-background[**kWp**] wird die Leistung **relativ zur Gesamtleistung** der Anlage angezeigt.",
-        label_visibility="visible",  disabled=True
+        label_visibility="visible",  disabled=False
     )
     st.space("stretch")
-    st.date_input(label="Datum:",width=100,format="MM.DD.YYYY",label_visibility="visible",  disabled=True)
+    print("Selected date in segmented control:", st.session_state.selected_date)
+    st.session_state.selected_date = st.date_input(label="Datum:",width=150,format="YYYY-MM-DD",label_visibility="visible",  disabled=False)
     st.space("stretch")
     option_map = {
             0: "Gesamt",
@@ -97,7 +98,9 @@ try:
     fig = plot_day(
         st.session_state[selected_standort].load_total_power_of_day(dt),
         st.session_state[selected_standort].load_wr_power_of_day(dt),
-        *st.session_state[selected_standort].calculate_sunrise_times(dt)
+        *st.session_state[selected_standort].calculate_sunrise_times(dt),
+        allgemein.loc[allgemein["id"]==selected_standort]["peak"].values[0]/1_000,
+        st.session_state.selected_unit
     )
     day_plot_ph.plotly_chart(
         fig,
