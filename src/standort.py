@@ -174,6 +174,44 @@ class Standort:
         return int(round(total, 0))  # gerundet als Integer
 
     @lru_cache
+    def load_yield_per_month(self):
+        data_polars = pl.scan_parquet(PATH_ERTRAG)
+        df = (
+            data_polars.filter(
+                pl.col("standort").str.to_lowercase() == self.standort.lower()
+            )
+            .with_columns(pl.col("date").dt.month().alias("month"))
+            .with_columns(pl.col("date").dt.year().alias("year"))
+            .group_by(["year", "month"])
+                .agg(
+                    (pl.col("value").sum() / 1000).alias("value_sum"),
+                    pl.count().alias("value_count"),
+                    pl.col("wr").n_unique().alias("wr_count")
+                )
+                .filter((pl.col("value_count") / pl.col("wr_count")) > 25)
+               # .drop("value_count")
+            .sort(["year", "month"])
+            .collect(engine="streaming")
+        )
+        return df.to_pandas()
+
+    @lru_cache
+    def load_yield_per_year(self):
+        data_polars = pl.scan_parquet(PATH_ERTRAG)
+        df = (
+            data_polars.filter(
+                pl.col("standort").str.to_lowercase() == self.standort.lower()
+            )
+            .with_columns(pl.col("date").dt.year().alias("year"))
+            .group_by("year")
+            .agg((pl.col("value").sum() / 1000).alias("value_sum"))
+            .sort("year")
+            .collect(engine="streaming")
+        )
+        return df.to_pandas()
+       
+
+    @lru_cache
     def load_daily_yield_last_year(self):
         data_polars = pl.scan_parquet(PATH_ERTRAG)
 

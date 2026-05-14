@@ -3,6 +3,7 @@ from datetime import date
 import pandas as pd
 from src.ui.year import plot_calendar_heatmap
 from src.ui.day import plot_day
+from src.ui.ertrag import plot_yield
 from src.ui.detail.header import create_header
 
 print("RERUN WHOLE SCRIPT")
@@ -37,6 +38,9 @@ with st.sidebar:
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = date.today().isoformat()
 
+if "selected_yield_year" not in st.session_state:
+    st.session_state.selected_yield_year = date.today().year
+
 def on_click():
     print("on_click called")
     if "heatmap_state" in st.session_state:
@@ -49,6 +53,25 @@ def on_click():
 
     st.session_state.selected_date = selected_date
     print("Selected date set to:", selected_date)
+
+
+def on_yield_click():
+    if "yield_plot_state" not in st.session_state:
+        return
+
+    points = st.session_state.yield_plot_state.selection.points
+    if not points:
+        return
+
+    selected_x = points[0].get("x")
+    try:
+        selected_year = int(selected_x)
+    except (TypeError, ValueError):
+        return
+
+    # Nur plausible Jahre aus dem Jahresbalken übernehmen (keine Monatswerte 1..12).
+    if 1990 <= selected_year <= 2100:
+        st.session_state.selected_yield_year = selected_year
 
 create_header(allgemein,selected_standort)
 
@@ -71,7 +94,8 @@ with st.container(horizontal=True,horizontal_alignment="center"):
     )
     st.space("stretch")
     print("Selected date in segmented control:", st.session_state.selected_date)
-    st.session_state.selected_date = st.date_input(label="Datum:",width=150,format="YYYY-MM-DD",label_visibility="visible",  disabled=False)
+    #st.session_state.selected_date = st.date_input(label="Datum:",width=150,format="YYYY-MM-DD",label_visibility="visible",  disabled=True)
+    st.date_input(label="Datum:",width=150,format="YYYY-MM-DD",label_visibility="visible",  disabled=True)
     st.space("stretch")
     option_map = {
             0: "Gesamt",
@@ -222,3 +246,43 @@ with heatmap_container:
                 width="content",
                 key="heatmap_state",
             )
+
+
+@st.fragment
+def render_yield_plot():
+    monthly_df = st.session_state[selected_standort].load_yield_per_month()
+    yearly_df = st.session_state[selected_standort].load_yield_per_year()
+
+    if not yearly_df.empty:
+        available_years = [int(y) for y in yearly_df["year"].tolist()]
+        if st.session_state.selected_yield_year not in available_years:
+            st.session_state.selected_yield_year = max(available_years)
+
+    fig_yield = plot_yield(
+        standort=st.session_state[selected_standort],
+        monthly_df=monthly_df,
+        yearly_df=yearly_df,
+        current_year=st.session_state.selected_yield_year,
+        drop_latest_month=True,
+    )
+
+    st.plotly_chart(
+        fig_yield,
+        selection_mode="points",
+        on_select=on_yield_click,
+        config={
+            "displayModeBar": False,
+            "displaylogo": False,
+            "doubleClick": False,
+            "scrollZoom": False,
+            "staticPlot": False,
+            "editSelection": False,
+            "responsive": False,
+        },
+        key="yield_plot_state",
+        width="stretch",
+    )
+
+
+
+render_yield_plot()
