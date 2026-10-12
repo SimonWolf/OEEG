@@ -37,4 +37,4 @@ RUN touch /var/log/cron.log \
 
 # Run data update at container start so writes go to the mounted volume,
 # then launch the Streamlit app. Continue even if update fails.
-ENTRYPOINT ["sh","-c","cron && (uv run CRON_UPDATE.py || true); exec uv run streamlit run streamlit_main.py --server.port=8501 --server.address=0.0.0.0"]
+ENTRYPOINT ["sh","-c","cron && (uv run CRON_UPDATE.py || true); exec uv run streamlit run streamlit_main.py --server.port=8501 --server.address=0.0.0.0 --server.fileWatcherType none"]
